@@ -57,7 +57,7 @@ class PuppeteerBrowser extends Browser {
     super(options);
   }
 
-  async visit(url) {
+  async visit(url, hook) {
     let done = false;
     let browser;
 
@@ -149,7 +149,7 @@ class PuppeteerBrowser extends Browser {
 
           try {
             await Promise.race([
-              page.goto(url, { waitUntil: 'domcontentloaded' }),
+              page.goto(url, { waitUntil: 'networkidle0' }),
               // eslint-disable-next-line no-shadow
               new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
             ]);
@@ -187,6 +187,7 @@ class PuppeteerBrowser extends Browser {
           }));
 
           this.html = await page.content();
+          if (hook) try { await hook(page); } catch (e) { this.log('page hook threw exception'); }
 
           resolve();
         } catch (error) {

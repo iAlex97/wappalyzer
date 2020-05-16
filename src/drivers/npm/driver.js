@@ -71,6 +71,8 @@ function processHtml(html, maxCols, maxRows) {
 
 class Driver {
   constructor(Browser, pageUrl, options) {
+    // eslint-disable-next-line no-unused-vars
+    this.pageHook = async (page) => { };
     this.options = Object.assign({}, {
       password: '',
       proxy: null,
@@ -213,7 +215,7 @@ class Driver {
     this.timer(`visit start; url: ${pageUrl.href}`, timerScope);
 
     try {
-      await browser.visit(pageUrl.href);
+      await browser.visit(pageUrl.href, this.pageHook);
     } catch (error) {
       this.wappalyzer.log(error.message, 'browser', 'error');
 
