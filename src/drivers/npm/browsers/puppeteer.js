@@ -170,6 +170,7 @@ class PuppeteerBrowser extends Browser {
           })));
 
           this.links = await links.jsonValue();
+          await links.dispose();
 
           // eslint-disable-next-line no-undef
           const scripts = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('script')).map(({
@@ -177,6 +178,7 @@ class PuppeteerBrowser extends Browser {
           }) => src));
 
           this.scripts = (await scripts.jsonValue()).filter(script => script);
+          await scripts.dispose();
 
           this.js = await page.evaluate(getJs);
 
