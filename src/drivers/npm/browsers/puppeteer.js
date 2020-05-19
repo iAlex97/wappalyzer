@@ -55,6 +55,8 @@ class PuppeteerBrowser extends Browser {
     options.maxWait = options.maxWait || 60;
 
     super(options);
+    this.ssAlowedResources = ['image', 'stylesheet', 'document', 'script'];
+    this.defAlowedResources = ['document', 'script'];
   }
 
   async visit(url, hook) {
@@ -81,6 +83,7 @@ class PuppeteerBrowser extends Browser {
           });
 
           const page = await browser.newPage();
+          const screenshot = await hook(page, 0);
 
           page.setDefaultTimeout(this.options.maxWait * 1.1);
 
@@ -102,7 +105,8 @@ class PuppeteerBrowser extends Browser {
 
                 request.abort('aborted');
               } else if (!done) {
-                if (!['document', 'script'].includes(request.resourceType())) {
+                const allowed = screenshot ? this.ssAlowedResources : this.defAlowedResources;
+                if (!allowed.includes(request.resourceType())) {
                   request.abort();
                 } else {
                   request.continue();
@@ -149,7 +153,7 @@ class PuppeteerBrowser extends Browser {
 
           try {
             await Promise.race([
-              page.goto(url, { waitUntil: 'networkidle0' }),
+              page.goto(url, { waitUntil: ['load', 'networkidle0'] }),
               // eslint-disable-next-line no-shadow
               new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
             ]);
@@ -189,7 +193,7 @@ class PuppeteerBrowser extends Browser {
           }));
 
           this.html = await page.content();
-          if (hook) try { await hook(page); } catch (e) { this.log('page hook threw exception'); }
+          if (hook) try { await hook(page, 1); } catch (e) { this.log('page hook threw exception'); }
 
           resolve();
         } catch (error) {

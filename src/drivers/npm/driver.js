@@ -72,7 +72,7 @@ function processHtml(html, maxCols, maxRows) {
 class Driver {
   constructor(Browser, pageUrl, options) {
     // eslint-disable-next-line no-unused-vars
-    this.pageHook = async (page) => { };
+    this.pageHook = async (page, type) => { };
     this.options = Object.assign({}, {
       password: '',
       proxy: null,
