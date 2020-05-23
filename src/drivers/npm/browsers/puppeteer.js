@@ -1,3 +1,5 @@
+const { TimeoutError } = require('puppeteer/lib/Errors');
+
 const {
   AWS_LAMBDA_FUNCTION_NAME,
   CHROME_BIN,
@@ -153,12 +155,16 @@ class PuppeteerBrowser extends Browser {
 
           try {
             await Promise.race([
-              page.goto(url, { waitUntil: ['load', 'networkidle0'] }),
+              page.goto(url, { waitUntil: ['load', 'networkidle0'], timeout: this.options.maxWait - 100 }),
               // eslint-disable-next-line no-shadow
               new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
             ]);
           } catch (error) {
-            throw new Error(error.message || error.toString());
+            if (!(error instanceof TimeoutError)) {
+              throw new Error(error.message || error.toString());
+            } else {
+              this.log('Ignored timeout error');
+            }
           }
 
           // eslint-disable-next-line no-undef
