@@ -125,6 +125,12 @@ class Driver {
     this.listeners[event].push(callback);
   }
 
+  removeListeners() {
+    Object.keys(this.listeners).forEach((key) => {
+      delete this.listeners[key];
+    });
+  }
+
   emit(event, params) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(listener => listener(params));
