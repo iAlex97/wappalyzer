@@ -166,6 +166,11 @@ class PuppeteerBrowser extends Browser {
             } else {
               this.log('Ignored timeout error');
             }
+          } finally {
+            page.removeAllListeners('error');
+            page.removeAllListeners('request');
+            page.removeAllListeners('response');
+            page.removeAllListeners('console');
           }
 
           // eslint-disable-next-line no-undef
@@ -215,6 +220,7 @@ class PuppeteerBrowser extends Browser {
       done = true;
 
       if (browser) {
+        browser.removeAllListeners('disconnected');
         try {
           await browser.close();
 
