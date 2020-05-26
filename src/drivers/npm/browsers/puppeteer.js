@@ -164,6 +164,11 @@ class PuppeteerBrowser extends Browser {
             if (!(error instanceof TimeoutError)) {
               throw new Error(error.message || error.toString());
             } else {
+              await Promise.race([
+                page.content(),
+                // eslint-disable-next-line no-shadow
+                new Promise((resolve, reject) => setTimeout(() => reject(new Error('Unrecoverable timeout error')), 1000)),
+              ]);
               this.log('Ignored timeout error');
             }
           } finally {
