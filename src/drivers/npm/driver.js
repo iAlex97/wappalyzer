@@ -270,11 +270,12 @@ class Driver {
           && link.hostname === this.origPageUrl.hostname
           && extensions.test(link.pathname)
         ) {
-          link.hash = '';
+          const href = link.href.replace(link.hash, '');
 
-          results.push(url.parse(link.href));
+          if (!results.some(x => x.href === href)) {
+            results.push(url.parse(href));
+          }
         }
-
         return results;
       }, [],
     );
