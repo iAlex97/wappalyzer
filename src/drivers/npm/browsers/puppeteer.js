@@ -210,7 +210,7 @@ class PuppeteerBrowser extends Browser {
           }));
 
           this.html = await page.content();
-          if (hook) try { await hook(page, 1); } catch (e) { this.log('page hook threw exception'); }
+          if (hook) try { await hook(page, 1); } catch (e) { this.log(`page hook exception: ${e.message || e}`); }
 
           resolve();
         } catch (error) {
