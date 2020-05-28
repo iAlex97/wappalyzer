@@ -167,7 +167,7 @@ class PuppeteerBrowser extends Browser {
               await Promise.race([
                 page.content(),
                 // eslint-disable-next-line no-shadow
-                new Promise((resolve, reject) => setTimeout(() => reject(new Error('Unrecoverable timeout error')), 1000)),
+                new Promise((resolve, reject) => setTimeout(() => reject(new Error('Unrecoverable timeout error')), 5000)),
               ]);
               this.log('Ignored timeout error');
             }
