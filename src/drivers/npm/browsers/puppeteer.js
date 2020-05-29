@@ -77,7 +77,6 @@ class PuppeteerBrowser extends Browser {
           } : {
             args: ['--no-sandbox', '--headless', '--disable-gpu', '--ignore-certificate-errors', ...extraArgs],
             executablePath: CHROME_BIN,
-            handleSIGTERM: false,
           });
 
           browser.on('disconnected', () => {
