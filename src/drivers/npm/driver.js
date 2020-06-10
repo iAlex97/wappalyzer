@@ -18,6 +18,11 @@ const errorTypes = {
   NO_HTML_DOCUMENT: 'No HTML document',
 };
 
+function getBasePath(pathname) {
+  const basePathIdx = pathname.indexOf('/', 1);
+  return basePathIdx === -1 ? pathname : pathname.substring(0, basePathIdx);
+}
+
 function sleep(ms) {
   return ms ? new Promise(resolve => setTimeout(resolve, ms)) : Promise.resolve();
 }
@@ -100,6 +105,7 @@ class Driver {
     this.origPageUrl = url.parse(pageUrl);
     this.analyzedPageUrls = {};
     this.apps = [];
+    this.basePaths = [];
     this.meta = {};
     this.listeners = {};
 
@@ -271,11 +277,13 @@ class Driver {
           && extensions.test(link.pathname)
         ) {
           const href = link.href.replace(link.hash, '');
+          const bp = getBasePath(link.pathname);
 
-          if (!results.some(x => x.href === href)) {
+          if (!results.some(x => x.href === href) && !this.basePaths.some(x => x === bp)) {
             const parsedLink = url.parse(href);
             parsedLink.slashesCount = (parsedLink.pathname.match(/\//g) || []).length;
             results.push(parsedLink);
+            this.basePaths.push(bp);
           }
         }
         return results;
