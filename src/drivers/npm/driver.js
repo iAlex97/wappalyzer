@@ -10,7 +10,7 @@ languageDetect.setLanguageType('iso2');
 
 const json = JSON.parse(fs.readFileSync(path.resolve(`${__dirname}/apps.json`)));
 
-const extensions = /^([^.]+$|\.(asp|aspx|cgi|htm|html|jsp|php)$)/;
+const extensions = /(^[^.]+$|\.(asp|aspx|cgi|htm|html|jsp|php)$)/;
 
 const errorTypes = {
   RESPONSE_NOT_OK: 'Response was not ok',
@@ -273,12 +273,15 @@ class Driver {
           const href = link.href.replace(link.hash, '');
 
           if (!results.some(x => x.href === href)) {
-            results.push(url.parse(href));
+            const parsedLink = url.parse(href);
+            parsedLink.slashesCount = (parsedLink.pathname.match(/\//g) || []).length;
+            results.push(parsedLink);
           }
         }
         return results;
       }, [],
     );
+    reducedLinks.sort((lhs, rhs) => lhs.slashesCount - rhs.slashesCount);
 
     this.emit('visit', { browser, pageUrl });
 
