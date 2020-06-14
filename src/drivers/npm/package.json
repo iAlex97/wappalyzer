@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "languagedetect": "^2.0.0",
+    "puppeteer": "^3.3.0",
     "zombie": "^6.1.4"
   },
   "peerDependencies": {

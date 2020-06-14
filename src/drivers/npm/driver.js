@@ -108,6 +108,12 @@ class Driver {
     this.basePaths = [];
     this.meta = {};
     this.listeners = {};
+    this.notDetectedTech = {
+      scripts: new Set(),
+      headers: new Set(),
+      cookies: new Set(),
+      metas: new Set(),
+    };
 
     this.Browser = Browser;
 
@@ -121,6 +127,8 @@ class Driver {
     this.wappalyzer.driver.log = (message, source, type) => this.log(message, source, type);
     this.wappalyzer.driver
       .displayApps = (detected, meta, context) => this.displayApps(detected, meta, context);
+    this.wappalyzer.driver
+      .displayNotDetected = tech => this.trackNotDetectedTech(tech);
   }
 
   on(event, callback) {
@@ -159,6 +167,28 @@ class Driver {
     }
 
     this.emit('log', { message, source, type });
+  }
+
+  trackNotDetectedTech(technologies) {
+    const {
+      scripts,
+      headers,
+      cookies,
+      metas,
+    } = technologies;
+
+    if (scripts && Array.isArray(scripts)) {
+      scripts.forEach(x => this.notDetectedTech.scripts.add(x));
+    }
+    if (headers && Array.isArray(headers)) {
+      headers.forEach(x => this.notDetectedTech.headers.add(x));
+    }
+    if (cookies && Array.isArray(cookies)) {
+      cookies.forEach(x => this.notDetectedTech.cookies.add(x));
+    }
+    if (metas && Array.isArray(metas)) {
+      metas.forEach(x => this.notDetectedTech.metas.add(x));
+    }
   }
 
   displayApps(detected, meta) {
@@ -323,6 +353,7 @@ class Driver {
       urls: this.analyzedPageUrls,
       applications: this.apps,
       meta: this.meta,
+      otherTechnologies: this.notDetectedTech,
     };
   }
 

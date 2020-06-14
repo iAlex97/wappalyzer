@@ -31,6 +31,9 @@ function asyncForEach(iterable, iterator) {
  */
 function addDetected(app, pattern, type, value, key) {
   app.detected = true;
+  if (type !== 'html') {
+    app.indicators.push({ type, value, key });
+  }
 
   // Set confidence level
   app.confidence[`${type} ${key ? `${key} ` : ''}${pattern.regex}`] = pattern.confidence === undefined ? 100 : parseInt(pattern.confidence, 10);
@@ -99,6 +102,7 @@ class Application {
     this.name = name;
     this.props = props;
     this.version = '';
+    this.indicators = [];
   }
 
   /**
@@ -239,6 +243,10 @@ class Wappalyzer {
 
       this.cacheDetectedApps(apps, url.canonical);
       this.trackDetectedApps(apps, url, language);
+      if (this.driver.displayNotDetected) {
+        const notDetectedTech = this.getNotDetectedTech(apps, js, scripts, headers, cookies, metaTags);
+        this.driver.displayNotDetected(notDetectedTech);
+      }
 
       this.log(`Processing ${Object.keys(data).join(', ')} took ${((new Date() - startTime) / 1000).toFixed(2)}s (${url.hostname})`, 'core');
 
@@ -462,6 +470,55 @@ class Wappalyzer {
     if (this.driver.ping instanceof Function) {
       this.ping();
     }
+  }
+
+  /**
+   * Add not detected tech here
+   *
+   * @param apps
+   * @param js
+   * @param scripts
+   * @param headers
+   * @param cookies
+   * @param metas
+   * @return an object containing the non detected tech from this page
+   */
+  getNotDetectedTech(apps, js, scripts, headers, cookies, metas) {
+    Object.values(apps).reduce((acc, curr) => {
+      acc.push(...curr.indicators);
+      return acc;
+    }, [])
+      .filter(x => x.type)
+      .forEach((indicator) => {
+        switch (indicator.type) {
+          case 'headers':
+            if ((Object.prototype.hasOwnProperty.call(headers, indicator.key))) {
+              delete headers[indicator.key];
+            }
+            break;
+          case 'cookies':
+            cookies = cookies.filter(cookie => cookie.name !== indicator.key);
+            break;
+          case 'script':
+            scripts = scripts.filter(script => script !== indicator.value);
+            break;
+          case 'js':
+            break;
+          case 'meta':
+            metas = metas.filter(m => !m.includes(indicator.value));
+            break;
+          default:
+            this.log(`Cannot remove technology type ${indicator.type} as it's not handled`, 'core', 'warn');
+            break;
+        }
+      });
+
+    return {
+      scripts: scripts.map(s => s.split('?').shift()),
+      headers: Object.entries(headers).map(([header, values]) => `${header}: ${values.join(', ')}`),
+      cookies: cookies.map(c => c.name),
+      metas,
+    };
   }
 
   /**
