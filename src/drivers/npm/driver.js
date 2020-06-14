@@ -1,4 +1,5 @@
 const url = require('url');
+const psl = require('psl');
 const fs = require('fs');
 const path = require('path');
 const LanguageDetect = require('languagedetect');
@@ -103,6 +104,7 @@ class Driver {
     this.options.htmlMaxRows = parseInt(this.options.htmlMaxRows, 10);
 
     this.origPageUrl = url.parse(pageUrl);
+    this.origDomain = psl.parse(this.origPageUrl.hostname);
     this.analyzedPageUrls = {};
     this.apps = [];
     this.basePaths = [];
@@ -303,7 +305,7 @@ class Driver {
           && link.protocol
           && link.protocol.match(/https?:/)
           && link.rel !== 'nofollow'
-          && link.hostname === this.origPageUrl.hostname
+          && psl.parse(link.hostname).domain === this.origDomain.domain
           && extensions.test(link.pathname)
         ) {
           const href = link.href.replace(link.hash, '');

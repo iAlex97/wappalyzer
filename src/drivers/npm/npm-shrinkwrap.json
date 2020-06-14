@@ -5,9 +5,9 @@
   "requires": true,
   "dependencies": {
     "@types/node": {
-      "version": "14.0.12",
-      "resolved": "https://registry.npmjs.org/@types/node/-/node-14.0.12.tgz",
-      "integrity": "sha512-/sjzehvjkkpvLpYtN6/2dv5kg41otMGuHQUt9T2aiAuIfleCQRQHXXzF1eAw/qkZTj5Kcf4JSTf7EIizHocy6Q==",
+      "version": "14.0.13",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-14.0.13.tgz",
+      "integrity": "sha512-rouEWBImiRaSJsVA+ITTFM6ZxibuAlTuNOCyxVbwreu6k6+ujs7DfnU9o+PShFhET78pMBl3eH+AGSI5eOTkPA==",
       "optional": true
     },
     "@types/yauzl": {
@@ -334,9 +334,9 @@
       "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g=="
     },
     "extract-zip": {
-      "version": "2.0.0",
-      "resolved": "https://registry.npmjs.org/extract-zip/-/extract-zip-2.0.0.tgz",
-      "integrity": "sha512-i42GQ498yibjdvIhivUsRslx608whtGoFIhF26Z7O4MYncBxp8CwalOs1lnHy21A9sIohWO2+uiE4SRtC9JXDg==",
+      "version": "2.0.1",
+      "resolved": "https://registry.npmjs.org/extract-zip/-/extract-zip-2.0.1.tgz",
+      "integrity": "sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==",
       "requires": {
         "@types/yauzl": "^2.9.1",
         "debug": "^4.1.1",
@@ -723,9 +723,9 @@
       "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="
     },
     "psl": {
-      "version": "1.7.0",
-      "resolved": "https://registry.npmjs.org/psl/-/psl-1.7.0.tgz",
-      "integrity": "sha512-5NsSEDv8zY70ScRnOTn7bK7eanl2MvFrOrS/R6x+dBt5g1ghnj9Zv90kO8GwT8gxcu2ANyFprnFYB85IogIJOQ=="
+      "version": "1.8.0",
+      "resolved": "https://registry.npmjs.org/psl/-/psl-1.8.0.tgz",
+      "integrity": "sha512-RIdOzyoavK+hA18OGGWDqUTsCLhtA7IcZ/6NCs4fFJaHBDab+pDDmDIByWFRQJq2Cd7r1OoQxBGKOaztq+hjIQ=="
     },
     "pump": {
       "version": "3.0.0",
@@ -742,9 +742,9 @@
       "integrity": "sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A=="
     },
     "puppeteer": {
-      "version": "3.1.0",
-      "resolved": "https://registry.npmjs.org/puppeteer/-/puppeteer-3.1.0.tgz",
-      "integrity": "sha512-jLa9sqdVx0tPnr2FcwAq+8DSjGhSM4YpkwOf3JE22Ycyqm71SW7B5uGfTyMGFoLCmbCozbLZclCjasPb0flTRw==",
+      "version": "3.3.0",
+      "resolved": "https://registry.npmjs.org/puppeteer/-/puppeteer-3.3.0.tgz",
+      "integrity": "sha512-23zNqRltZ1PPoK28uRefWJ/zKb5Jhnzbbwbpcna2o5+QMn17F0khq5s1bdH3vPlyj+J36pubccR8wiNA/VE0Vw==",
       "requires": {
         "debug": "^4.1.0",
         "extract-zip": "^2.0.0",

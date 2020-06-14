@@ -515,7 +515,7 @@ class Wappalyzer {
 
     return {
       scripts: scripts.map(s => s.split('?').shift()),
-      headers: Object.entries(headers).map(([header, values]) => `${header}: ${values.join(', ')}`),
+      headers: Array.from(Object.keys(headers)),
       cookies: cookies.map(c => c.name),
       metas,
     };
