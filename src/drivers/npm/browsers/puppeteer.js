@@ -61,7 +61,7 @@ class PuppeteerBrowser extends Browser {
     this.defAlowedResources = ['document', 'script'];
   }
 
-  async visit(url, hook) {
+  async visit(url, hook, simple) {
     let done = false;
     let browser;
 
@@ -157,7 +157,7 @@ class PuppeteerBrowser extends Browser {
 
           try {
             await Promise.race([
-              page.goto(url, { waitUntil: ['load', 'networkidle0'], timeout: this.options.maxWait - 100 }),
+              page.goto(url, { waitUntil: simple ? ['domcontentloaded'] : ['domcontentloaded', 'networkidle0'], timeout: this.options.maxWait - 100 }),
               // eslint-disable-next-line no-shadow
               new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
             ]);

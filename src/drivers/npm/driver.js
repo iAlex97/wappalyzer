@@ -105,6 +105,7 @@ class Driver {
 
     this.origPageUrl = url.parse(pageUrl);
     this.origDomain = psl.parse(this.origPageUrl.hostname);
+    this.recoveredTimeoutError = false;
     this.analyzedPageUrls = {};
     this.apps = [];
     this.basePaths = [];
@@ -245,13 +246,22 @@ class Driver {
     await sleep(this.options.delay * index);
 
     try {
-      return this.visit(pageUrl, timerScope);
+      return await this.visit(pageUrl, timerScope);
     } catch (error) {
+      if (error.message === 'RESPONSE_NOT_OK_RETRY') {
+        try {
+          const r = await this.visit(pageUrl, timerScope, true);
+          this.recoveredTimeoutError = true;
+          return r;
+        } catch (e) {
+          this.wappalyzer.log('Retrying page failed', 'browser', 'error');
+        }
+      }
       throw new Error(error.message);
     }
   }
 
-  async visit(pageUrl, timerScope) {
+  async visit(pageUrl, timerScope, retry = false) {
     const browser = new this.Browser(this.options);
 
     browser.log = (message, type) => this.wappalyzer.log(message, 'browser', type);
@@ -259,10 +269,13 @@ class Driver {
     this.timer(`visit start; url: ${pageUrl.href}`, timerScope);
 
     try {
-      await browser.visit(pageUrl.href, this.pageHook);
+      await browser.visit(pageUrl.href, this.pageHook, this.recoveredTimeoutError || retry);
     } catch (error) {
+      if (error.message.includes('Unrecoverable timeout error') && !retry) {
+        this.wappalyzer.log('Retrying page visit', 'browser', 'warn');
+        throw new Error('RESPONSE_NOT_OK_RETRY');
+      }
       this.wappalyzer.log(error.message, 'browser', 'error');
-
       throw new Error('RESPONSE_NOT_OK');
     }
 
