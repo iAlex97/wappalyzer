@@ -19,6 +19,7 @@ if (AWS_LAMBDA_FUNCTION_NAME) {
 }
 const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
 const fetch = require('cross-fetch');
+const fs = require('fs').promises;
 const Browser = require('../browser');
 
 function getJs() {
@@ -58,8 +59,6 @@ class PuppeteerBrowser extends Browser {
     options.maxWait = options.maxWait || 60;
 
     super(options);
-    this.ssAlowedResources = ['image', 'stylesheet', 'document', 'script'];
-    this.defAlowedResources = ['document', 'script'];
   }
 
   async visit(url, hook, simple) {
@@ -87,47 +86,48 @@ class PuppeteerBrowser extends Browser {
             }
           });
 
-          const blocker = await PuppeteerBlocker.fromLists(fetch, [
-            'https://easylist.to/easylist/easylist.txt',
-            'https://easylist.to/easylist/fanboy-annoyance.txt',
-            'https://raw.github.com/r4vi/block-the-eu-cookie-shit-list/master/filterlist.txt',
-          ]);
-
           const page = await browser.newPage();
-          await blocker.enableBlockingInPage(page);
           const screenshot = await hook(page, 0);
+          let responseReceived = false;
+
+          if (screenshot) {
+            const blocker = await PuppeteerBlocker.fromLists(fetch, [
+              'https://raw.githubusercontent.com/iAlex97/block-the-eu-cookie-shit-list/master/filterlist.txt',
+            ], {}, {
+              path: 'blocker_engine.bin',
+              read: fs.readFile,
+              write: fs.writeFile,
+            });
+            await blocker.enableBlockingInPage(page);
+          } else {
+            await page.setRequestInterception(true);
+            page.on('request', (request) => {
+              try {
+                if (
+                  responseReceived
+                  && request.isNavigationRequest()
+                  && request.frame() === page.mainFrame()
+                  && request.url() !== url
+                ) {
+                  this.log(`abort navigation to ${request.url()}`);
+
+                  request.abort('aborted');
+                } else if (!done) {
+                  if (!['document', 'script'].includes(request.resourceType())) {
+                    request.abort();
+                  } else {
+                    request.continue();
+                  }
+                }
+              } catch (error) {
+                reject(new Error(`page error: ${error.message || error}`));
+              }
+            });
+          }
 
           page.setDefaultTimeout(this.options.maxWait * 1.1);
 
-          // await page.setRequestInterception(true);
-
           page.on('error', error => reject(new Error(`page error: ${error.message || error}`)));
-
-          let responseReceived = false;
-
-          // page.on('request', (request) => {
-          //   try {
-          //     if (
-          //       responseReceived
-          //       && request.isNavigationRequest()
-          //       && request.frame() === page.mainFrame()
-          //       && request.url() !== url
-          //     ) {
-          //       this.log(`abort navigation to ${request.url()}`);
-          //
-          //       request.abort('aborted');
-          //     } else if (!done) {
-          //       const allowed = screenshot ? this.ssAlowedResources : this.defAlowedResources;
-          //       if (!allowed.includes(request.resourceType())) {
-          //         request.abort();
-          //       } else {
-          //         request.continue();
-          //       }
-          //     }
-          //   } catch (error) {
-          //     reject(new Error(`page error: ${error.message || error}`));
-          //   }
-          // });
 
           page.on('response', (response) => {
             try {
@@ -154,7 +154,7 @@ class PuppeteerBrowser extends Browser {
           });
 
           page.on('console', ({ _type, _text, _location }) => {
-            if (!/Failed to load resource: net::ERR_FAILED/.test(_text)) {
+            if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector/.test(_text)) {
               this.log(`${_text} (${_location.url}: ${_location.lineNumber})`, _type);
             }
           });
