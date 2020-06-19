@@ -92,7 +92,7 @@ class PuppeteerBrowser extends Browser {
 
           if (screenshot) {
             const blocker = await PuppeteerBlocker.fromLists(fetch, [
-              'https://raw.githubusercontent.com/iAlex97/block-the-eu-cookie-shit-list/master/filterlist.txt',
+              'https://raw.githubusercontent.com/iAlex97/block-the-eu-cookie-shit-list/development/filterlist_v2.txt',
             ], {}, {
               path: 'blocker_engine.bin',
               read: fs.readFile,
