@@ -17,7 +17,8 @@ if (AWS_LAMBDA_FUNCTION_NAME) {
   // eslint-disable-next-line global-require
   puppeteer = require('puppeteer');
 }
-
+const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
+const fetch = require('cross-fetch');
 const Browser = require('../browser');
 
 function getJs() {
@@ -86,40 +87,47 @@ class PuppeteerBrowser extends Browser {
             }
           });
 
+          const blocker = await PuppeteerBlocker.fromLists(fetch, [
+            'https://easylist.to/easylist/easylist.txt',
+            'https://easylist.to/easylist/fanboy-annoyance.txt',
+            'https://raw.github.com/r4vi/block-the-eu-cookie-shit-list/master/filterlist.txt',
+          ]);
+
           const page = await browser.newPage();
+          await blocker.enableBlockingInPage(page);
           const screenshot = await hook(page, 0);
 
           page.setDefaultTimeout(this.options.maxWait * 1.1);
 
-          await page.setRequestInterception(true);
+          // await page.setRequestInterception(true);
 
           page.on('error', error => reject(new Error(`page error: ${error.message || error}`)));
 
           let responseReceived = false;
 
-          page.on('request', (request) => {
-            try {
-              if (
-                responseReceived
-                && request.isNavigationRequest()
-                && request.frame() === page.mainFrame()
-                && request.url() !== url
-              ) {
-                this.log(`abort navigation to ${request.url()}`);
-
-                request.abort('aborted');
-              } else if (!done) {
-                const allowed = screenshot ? this.ssAlowedResources : this.defAlowedResources;
-                if (!allowed.includes(request.resourceType())) {
-                  request.abort();
-                } else {
-                  request.continue();
-                }
-              }
-            } catch (error) {
-              reject(new Error(`page error: ${error.message || error}`));
-            }
-          });
+          // page.on('request', (request) => {
+          //   try {
+          //     if (
+          //       responseReceived
+          //       && request.isNavigationRequest()
+          //       && request.frame() === page.mainFrame()
+          //       && request.url() !== url
+          //     ) {
+          //       this.log(`abort navigation to ${request.url()}`);
+          //
+          //       request.abort('aborted');
+          //     } else if (!done) {
+          //       const allowed = screenshot ? this.ssAlowedResources : this.defAlowedResources;
+          //       if (!allowed.includes(request.resourceType())) {
+          //         request.abort();
+          //       } else {
+          //         request.continue();
+          //       }
+          //     }
+          //   } catch (error) {
+          //     reject(new Error(`page error: ${error.message || error}`));
+          //   }
+          // });
 
           page.on('response', (response) => {
             try {
