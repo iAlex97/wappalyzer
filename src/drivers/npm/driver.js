@@ -271,7 +271,7 @@ class Driver {
     try {
       await browser.visit(pageUrl.href, this.pageHook, this.recoveredTimeoutError || retry);
     } catch (error) {
-      if (error.message.includes('Unrecoverable timeout error') && !retry) {
+      if (!retry) {
         this.wappalyzer.log('Retrying page visit', 'browser', 'warn');
         throw new Error('RESPONSE_NOT_OK_RETRY');
       }
