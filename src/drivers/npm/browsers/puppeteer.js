@@ -153,6 +153,15 @@ class PuppeteerBrowser extends Browser {
             }
           });
 
+          page.on('dialog', async (dialog) => {
+            this.log('Dismissing dialog');
+            if (dialog.type() === 'prompt') {
+              await dialog.accept('');
+            } else {
+              await dialog.dismiss();
+            }
+          });
+
           page.on('console', ({ _type, _text, _location }) => {
             if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector/.test(_text)) {
               this.log(`${_text} (${_location.url}: ${_location.lineNumber})`, _type);
@@ -181,6 +190,7 @@ class PuppeteerBrowser extends Browser {
               this.log('Ignored timeout error');
             }
           } finally {
+            page.removeAllListeners('dialog');
             page.removeAllListeners('error');
             page.removeAllListeners('request');
             page.removeAllListeners('response');
