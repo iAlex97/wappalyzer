@@ -21,6 +21,7 @@ const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
 const fetch = require('cross-fetch');
 const fs = require('fs').promises;
 const psl = require('psl');
+const urll = require('url');
 const { RejectAfter } = require('../utils');
 const Browser = require('../browser');
 
@@ -54,6 +55,10 @@ function getJs() {
 
   // eslint-disable-next-line no-undef
   return dereference(window);
+}
+
+function checkSameDomain(lhs, rhs) {
+  return psl.parse(urll.parse(lhs).hostname).domain === psl.parse(urll.parse(rhs).hostname).domain;
 }
 
 class PuppeteerBrowser extends Browser {
@@ -184,15 +189,19 @@ class PuppeteerBrowser extends Browser {
               RejectAfter(this.options.maxWait, 'timeout'),
             ]);
             if (responseRedirected) {
-              // if page redirected, we wait for navigation end
-              await Promise.race([
-                page.waitForNavigation({
-                  waitUntil: pageEvents,
-                  timeout: this.options.maxWait - 100,
-                }),
-                RejectAfter(this.options.maxWait, 'timeout'),
-              ]);
-              if (psl.parse(url).domain === psl.parse(page.url()).domain) {
+              // if page redirected and url didn't change it means
+              // we need to wait for navigation to end
+              if (page.url() === url) {
+                await Promise.race([
+                  page.waitForNavigation({
+                    waitUntil: pageEvents,
+                    timeout: this.options.maxWait - 100,
+                  }),
+                  RejectAfter(this.options.maxWait, 'timeout'),
+                ]);
+              }
+
+              if (checkSameDomain(url, page.url())) {
                 this.log(`Redirected from ${url} to ${page.url()}`);
               } else {
                 throw new Error(`Invalid redirect from ${url} to ${page.url()}`);
