@@ -21,6 +21,7 @@ const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
 const fetch = require('cross-fetch');
 const fs = require('fs').promises;
 const psl = require('psl');
+const { RejectAfter } = require('../utils');
 const Browser = require('../browser');
 
 function getJs() {
@@ -180,8 +181,7 @@ class PuppeteerBrowser extends Browser {
             const pageEvents = simple ? ['domcontentloaded'] : ['domcontentloaded', 'networkidle0'];
             await Promise.race([
               page.goto(url, { waitUntil: pageEvents, timeout: this.options.maxWait - 100 }),
-              // eslint-disable-next-line no-shadow
-              new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
+              RejectAfter(this.options.maxWait, 'timeout'),
             ]);
             if (responseRedirected) {
               // if page redirected, we wait for navigation end
@@ -190,8 +190,7 @@ class PuppeteerBrowser extends Browser {
                   waitUntil: pageEvents,
                   timeout: this.options.maxWait - 100,
                 }),
-                // eslint-disable-next-line no-shadow
-                new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
+                RejectAfter(this.options.maxWait, 'timeout'),
               ]);
               if (psl.parse(url).domain === psl.parse(page.url()).domain) {
                 this.log(`Redirected from ${url} to ${page.url()}`);
@@ -200,15 +199,10 @@ class PuppeteerBrowser extends Browser {
               }
             }
           } catch (error) {
-            if (!(error instanceof TimeoutError)) {
-              throw new Error(error.message || error.toString());
+            if (error instanceof TimeoutError) {
+              this.log('Attempt to ignore timeout error');
             } else {
-              await Promise.race([
-                page.content(),
-                // eslint-disable-next-line no-shadow
-                new Promise((resolve, reject) => setTimeout(() => reject(new Error('Unrecoverable timeout error')), 5000)),
-              ]);
-              this.log('Ignored timeout error');
+              throw new Error(error.message || error.toString());
             }
           } finally {
             page.removeAllListeners('dialog');
@@ -217,6 +211,11 @@ class PuppeteerBrowser extends Browser {
             page.removeAllListeners('response');
             page.removeAllListeners('console');
           }
+
+          await Promise.race([
+            page.content(),
+            RejectAfter(5000, 'Unrecoverable timeout error'),
+          ]);
 
           // eslint-disable-next-line no-undef
           const links = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('a')).map(({
