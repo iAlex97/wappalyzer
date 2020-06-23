@@ -20,6 +20,7 @@ if (AWS_LAMBDA_FUNCTION_NAME) {
 const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
 const fetch = require('cross-fetch');
 const fs = require('fs').promises;
+const psl = require('psl');
 const Browser = require('../browser');
 
 function getJs() {
@@ -89,6 +90,7 @@ class PuppeteerBrowser extends Browser {
           const page = await browser.newPage();
           const screenshot = await hook(page, 0);
           let responseReceived = false;
+          let responseRedirected = false;
 
           if (screenshot) {
             const blocker = await PuppeteerBlocker.fromLists(fetch, [
@@ -147,6 +149,8 @@ class PuppeteerBrowser extends Browser {
 
               if (response.status() < 300 || response.status() > 399) {
                 responseReceived = true;
+              } else {
+                responseRedirected = true;
               }
             } catch (error) {
               reject(new Error(`page error: ${error.message || error}`));
@@ -173,11 +177,28 @@ class PuppeteerBrowser extends Browser {
           }
 
           try {
+            const pageEvents = simple ? ['domcontentloaded'] : ['domcontentloaded', 'networkidle0'];
             await Promise.race([
-              page.goto(url, { waitUntil: simple ? ['domcontentloaded'] : ['domcontentloaded', 'networkidle0'], timeout: this.options.maxWait - 100 }),
+              page.goto(url, { waitUntil: pageEvents, timeout: this.options.maxWait - 100 }),
               // eslint-disable-next-line no-shadow
               new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
             ]);
+            if (responseRedirected) {
+              // if page redirected, we wait for navigation end
+              await Promise.race([
+                page.waitForNavigation({
+                  waitUntil: pageEvents,
+                  timeout: this.options.maxWait - 100,
+                }),
+                // eslint-disable-next-line no-shadow
+                new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), this.options.maxWait)),
+              ]);
+              if (psl.parse(url).domain === psl.parse(page.url()).domain) {
+                this.log(`Redirected from ${url} to ${page.url()}`);
+              } else {
+                throw new Error(`Invalid redirect from ${url} to ${page.url()}`);
+              }
+            }
           } catch (error) {
             if (!(error instanceof TimeoutError)) {
               throw new Error(error.message || error.toString());
