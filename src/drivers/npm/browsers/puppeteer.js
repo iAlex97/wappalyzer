@@ -134,6 +134,13 @@ class PuppeteerBrowser extends Browser {
           }
 
           page.setDefaultTimeout(this.options.maxWait * 1.1);
+          const checkPageCrashed = (error) => {
+            // eslint-disable-next-line no-underscore-dangle
+            if (page._client._callbacks.size > 0) {
+              reject(new Error(`page ${page.url()} error: ${error.message || error}`));
+            }
+          };
+          process.on('unhandledRejection', checkPageCrashed);
 
           page.on('error', error => reject(new Error(`page error: ${error.message || error}`)));
 
