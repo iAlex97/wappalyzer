@@ -29,6 +29,8 @@
   "dependencies": {
     "@cliqz/adblocker-puppeteer": "^1.16.0",
     "cross-fetch": "^3.0.5",
+    "htmlmetaparser": "^2.0.3",
+    "htmlparser2": "^4.1.0",
     "languagedetect": "^2.0.0",
     "psl": "^1.8.0",
     "puppeteer": "^3.3.0",

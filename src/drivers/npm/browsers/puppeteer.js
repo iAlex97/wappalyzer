@@ -22,7 +22,8 @@ const fetch = require('cross-fetch');
 const fs = require('fs').promises;
 const psl = require('psl');
 const urll = require('url');
-const { RejectAfter } = require('../utils');
+const { RejectAfter, extractPageText, extractMetadata } = require('../utils');
+const PageTextHelper = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
 function getJs() {
@@ -66,9 +67,11 @@ class PuppeteerBrowser extends Browser {
     options.maxWait = options.maxWait || 60;
 
     super(options);
+    this.pageTexts = {};
+    this.screenshot = null;
   }
 
-  async visit(url, hook, simple) {
+  async visit(url, screenshot, simple, first) {
     let done = false;
     let browser;
 
@@ -84,6 +87,7 @@ class PuppeteerBrowser extends Browser {
           } : {
             args: ['--no-sandbox', '--headless', '--disable-gpu', '--ignore-certificate-errors', ...extraArgs],
             executablePath: CHROME_BIN,
+            ignoreHTTPSErrors: true,
             handleSIGTERM: false,
           });
 
@@ -94,11 +98,13 @@ class PuppeteerBrowser extends Browser {
           });
 
           const page = await browser.newPage();
-          const screenshot = await hook(page, 0);
+
           let responseReceived = false;
           let responseRedirected = false;
 
           if (screenshot) {
+            await page.setViewport({ width: 1920, height: 1080 });
+
             const blocker = await PuppeteerBlocker.fromLists(fetch, [
               'https://raw.githubusercontent.com/iAlex97/block-the-eu-cookie-shit-list/development/filterlist_v2.txt',
             ], {}, {
@@ -134,13 +140,6 @@ class PuppeteerBrowser extends Browser {
           }
 
           page.setDefaultTimeout(this.options.maxWait * 1.1);
-          const checkPageCrashed = (error) => {
-            // eslint-disable-next-line no-underscore-dangle
-            if (page._client._callbacks.size > 0) {
-              reject(new Error(`page ${page.url()} error: ${error.message || error}`));
-            }
-          };
-          process.on('unhandledRejection', checkPageCrashed);
 
           page.on('error', error => reject(new Error(`page error: ${error.message || error}`)));
 
@@ -265,7 +264,13 @@ class PuppeteerBrowser extends Browser {
           }));
 
           this.html = await page.content();
-          if (hook) try { await hook(page, 1); } catch (e) { this.log(`page hook exception: ${e.message || e}`); }
+          if (screenshot) {
+            await this.screenshotTimeout(page);
+          }
+          if (first) {
+            await this.extractJsonLd(this.html, url);
+          }
+          await this.extractPageTextsTimeout(page);
 
           resolve();
         } catch (error) {
@@ -292,6 +297,89 @@ class PuppeteerBrowser extends Browser {
     }
 
     this.log(`visit ok (${url})`);
+  }
+
+  async screenshotTimeout(page) {
+    try {
+      await page.waitFor(3 * 1000);
+      this.screenshot = await Promise.race([
+        page.screenshot({
+          encoding: 'binary',
+          type: 'jpeg',
+        }),
+        RejectAfter(5000, 'Failed taking screenshot'),
+      ]);
+    } catch (error) {
+      this.log(error.message || error, 'error');
+    }
+  }
+
+  async extractPageTextsTimeout(page) {
+    try {
+      await Promise.race([
+        this.extractPageTexts(page),
+        RejectAfter(3000, 'Failed extracting page texts'),
+      ]);
+    } catch (error) {
+      this.log(error.message || error, 'error');
+    }
+  }
+
+  async extractPageTexts(page) {
+    let pageText = '';
+
+    const titleString = await PageTextHelper.titleString(page);
+    if (titleString) {
+      this.pageTexts['title'] = titleString;
+      pageText += ` ${titleString}`;
+    }
+
+    const siteNameString = await PageTextHelper.siteNameString(page);
+    if (siteNameString) {
+      this.pageTexts['site_name'] = siteNameString;
+    }
+
+    const descriptionString = await PageTextHelper.descriptionString(page);
+    if (descriptionString) {
+      this.pageTexts['description'] = descriptionString;
+      pageText += ` ${descriptionString}`;
+    }
+
+    const descSecondaryString = await PageTextHelper.secondaryTitleString(page);
+    if (descSecondaryString) {
+      this.pageTexts['secondary_title'] = descSecondaryString;
+    }
+
+    try {
+      // eslint-disable-next-line no-undef
+      const bodyHTML = await page.evaluate(() => (document.body ? document.body.innerHTML : ''));
+      let _text = await extractPageText(bodyHTML);
+      pageText += ` ${_text}`;
+
+      let textBuffer;
+      if (Buffer.byteLength(pageText, 'utf8') > 65534) {
+        textBuffer = Buffer.alloc(65534);
+        textBuffer.write(pageText);
+      } else {
+        textBuffer = Buffer.from(pageText);
+      }
+
+      this.pageTexts['page_text'] = textBuffer.toString();
+    } catch (e) {
+      this.log(`Failed page text: ${e.message}`, 'driver', 'error');
+    }
+  }
+
+  async extractJsonLd(fullBody, url) {
+    try {
+      const metas = await extractMetadata(fullBody, url);
+
+      if (Object.prototype.hasOwnProperty.call(metas, 'jsonld')) {
+        this.pageTexts['jsonld'] = metas.jsonld;
+      }
+    } catch (e) {
+      this.log(`Failed extracting json-ld: ${e.message}`, 'driver', 'error');
+    }
   }
 }
 

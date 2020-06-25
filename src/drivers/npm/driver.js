@@ -2,6 +2,7 @@ const url = require('url');
 const psl = require('psl');
 const fs = require('fs');
 const path = require('path');
+const { fork } = require('child_process');
 const LanguageDetect = require('languagedetect');
 const Wappalyzer = require('./wappalyzer');
 
@@ -77,8 +78,6 @@ function processHtml(html, maxCols, maxRows) {
 
 class Driver {
   constructor(Browser, pageUrl, options) {
-    // eslint-disable-next-line no-unused-vars
-    this.pageHook = async (page, type) => { };
     this.options = Object.assign({}, {
       password: '',
       proxy: null,
@@ -111,6 +110,8 @@ class Driver {
     this.basePaths = [];
     this.meta = {};
     this.listeners = {};
+    this.screenshot = null;
+    this.pageTexts = {};
     this.notDetectedTech = {
       scripts: new Set(),
       headers: new Set(),
@@ -155,25 +156,12 @@ class Driver {
   }
 
   analyze() {
-    // in the highly unlikely case that each page is retried again
-    process.setMaxListeners(2 * this.options.maxUrls + 1);
-    process.on('unhandledRejection', (error) => {
-      if (error.message && error.message.includes('Page crashed!')) {
-        return;
-      }
-      this.log(`Top level unhandledRejection: ${error.message}`, 'driver', 'error');
-      // throw error;
-    });
-
     this.time = {
       start: new Date().getTime(),
       last: new Date().getTime(),
     };
 
-    return this.crawl(this.origPageUrl)
-      .finally(() => {
-        process.removeAllListeners('unhandledRejection');
-      });
+    return this.crawl(this.origPageUrl);
   }
 
   log(message, source, type) {
@@ -274,21 +262,49 @@ class Driver {
     }
   }
 
+  browserFork(pageUrl, simple, screenshot, first, options) {
+    return new Promise(((resolve, reject) => {
+      const ls = fork(`${__dirname}/browsers/pptr.js`, [pageUrl.href, simple, screenshot, first, JSON.stringify(options)]);
+      const res = {};
+
+      ls.on('exit', (code) => {
+        this.log(`child_process exited with code ${code}`, 'driver', 'info');
+        if (code === 0) {
+          resolve(res);
+        } else {
+          reject();
+        }
+      });
+
+      ls.on('message', (message) => {
+        if (message.type === 'log') {
+          const { message: msg, source, type } = message.data;
+          this.log(msg, source, type);
+        } else if (message.type === 'ss') {
+          Object.assign(res, { ss: message.data.data });
+        } else if (message.type === 'data') {
+          Object.assign(res, message.data);
+        }
+      });
+    }));
+  }
+
   async visit(pageUrl, timerScope, retry = false) {
-    const browser = new this.Browser(this.options);
-
-    browser.log = (message, type) => this.wappalyzer.log(message, 'browser', type);
-
     this.timer(`visit start; url: ${pageUrl.href}`, timerScope);
 
+    let browser;
     try {
-      await browser.visit(pageUrl.href, this.pageHook, this.recoveredTimeoutError || retry);
+      const ss = this.screenshot === null;
+      const simpleLoad = this.recoveredTimeoutError || retry;
+      const first = this.origPageUrl === pageUrl;
+
+      browser = await this.browserFork(pageUrl, simpleLoad, ss, first, this.options);
     } catch (error) {
       if (!retry) {
-        this.wappalyzer.log('Retrying page visit', 'browser', 'warn');
+        this.log('Retrying page visit', 'browser', 'warn');
         throw new Error('RESPONSE_NOT_OK_RETRY');
       }
-      this.wappalyzer.log(error.message, 'browser', 'error');
+      this.log(error.message, 'browser', 'error');
       throw new Error('RESPONSE_NOT_OK');
     }
 
@@ -297,9 +313,14 @@ class Driver {
     this.analyzedPageUrls[pageUrl.href].status = browser.statusCode;
 
     // Validate response
-    if (!browser.statusCode) {
+    if (!browser || !browser.statusCode) {
       throw new Error('NO_RESPONSE');
     }
+
+    if (browser.ss && this.screenshot === null) {
+      this.screenshot = Buffer.from(browser.ss);
+    }
+    this.copyPageTexts(browser.pageTexts);
 
     const { cookies, headers, scripts } = browser;
 
@@ -349,9 +370,17 @@ class Driver {
     );
     reducedLinks.sort((lhs, rhs) => lhs.slashesCount - rhs.slashesCount);
 
-    this.emit('visit', { browser, pageUrl });
+    // this.emit('visit', { browser, pageUrl });
 
     return reducedLinks;
+  }
+
+  copyPageTexts(pageTexts) {
+    ['title', 'site_name', 'description', 'secondary_title', 'page_text', 'jsonld'].forEach((key) => {
+      if (!Object.prototype.hasOwnProperty.call(this.pageTexts, key) && Object.prototype.hasOwnProperty.call(pageTexts, key)) {
+        Object.assign(this.pageTexts, { [key]: pageTexts[key] });
+      }
+    });
   }
 
   async crawl(pageUrl, index = 1, depth = 1) {
@@ -382,6 +411,8 @@ class Driver {
       applications: this.apps,
       meta: this.meta,
       otherTechnologies: this.notDetectedTech,
+      screenshot: this.screenshot,
+      pageTexts: this.pageTexts,
     };
   }
 
@@ -405,6 +436,14 @@ class Driver {
     this.wappalyzer.log(`[timer] ${message}; lapsed: ${sinceLast} / ${sinceStart}`, 'driver');
 
     scope.last = time;
+  }
+
+  getScreenshotBuffer() {
+    return this.screenshot;
+  }
+
+  getPageTexts() {
+    return this.pageTexts;
   }
 }
 
