@@ -158,11 +158,11 @@ class Driver {
     // in the highly unlikely case that each page is retried again
     process.setMaxListeners(2 * this.options.maxUrls + 1);
     process.on('unhandledRejection', (error) => {
-      if (error.message && error.message === 'Page crashed!') {
+      if (error.message && error.message.includes('Page crashed!')) {
         return;
       }
       this.log(`Top level unhandledRejection: ${error.message}`, 'driver', 'error');
-      throw error;
+      // throw error;
     });
 
     this.time = {
