@@ -27,7 +27,13 @@ const PageTextHelper = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
 function getJs() {
-  const dereference = (obj, level = 0) => {
+  const dereference = (obj, level = 0, ts = -1) => {
+    if (ts < 0) {
+      ts = new Date().getTime();
+    }
+    if (new Date().getTime() - ts >= 2000) {
+      return undefined;
+    }
     try {
       // eslint-disable-next-line no-undef
       if (level > 5 || (level && obj === window)) {
@@ -35,14 +41,14 @@ function getJs() {
       }
 
       if (Array.isArray(obj)) {
-        obj = obj.map(item => dereference(item, level + 1));
+        obj = obj.map(item => dereference(item, level + 1, ts));
       }
 
       if (typeof obj === 'function' || (typeof obj === 'object' && obj !== null)) {
         const newObj = {};
 
         Object.keys(obj).forEach((key) => {
-          newObj[key] = dereference(obj[key], level + 1);
+          newObj[key] = dereference(obj[key], level + 1, ts);
         });
 
         return newObj;

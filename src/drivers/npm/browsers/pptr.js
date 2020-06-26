@@ -1,13 +1,11 @@
 const Browser = require('./puppeteer');
 
-if (process.argv.length < 6) {
+if (process.argv.length < 4) {
   process.exit(1);
 }
 
-const [, , mUrl, mSimple, mScreenshot, mFirst, mOptions] = process.argv;
-const simple = mSimple === 'true';
-const screenshot = mScreenshot === 'true';
-const first = mFirst === 'true';
+const [, , mUrl, mFlags, mOptions] = process.argv;
+const { simple, screenshot, first } = JSON.parse(mFlags);
 const options = JSON.parse(mOptions);
 
 const browser = new Browser(options);

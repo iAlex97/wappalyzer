@@ -264,7 +264,8 @@ class Driver {
 
   browserFork(pageUrl, simple, screenshot, first, options) {
     return new Promise(((resolve, reject) => {
-      const ls = fork(`${__dirname}/browsers/pptr.js`, [pageUrl.href, simple, screenshot, first, JSON.stringify(options)]);
+      const flags = { simple, screenshot, first };
+      const ls = fork(`${__dirname}/browsers/pptr.js`, [pageUrl.href, JSON.stringify(flags), JSON.stringify(options)]);
       const res = {};
 
       ls.on('exit', (code) => {
