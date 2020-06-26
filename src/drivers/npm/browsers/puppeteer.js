@@ -346,31 +346,31 @@ class PuppeteerBrowser extends Browser {
 
     const titleString = await PageTextHelper.titleString(page);
     if (titleString) {
-      this.pageTexts['title'] = titleString;
+      Object.assign(this.pageTexts, { title: titleString });
       pageText += ` ${titleString}`;
     }
 
     const siteNameString = await PageTextHelper.siteNameString(page);
     if (siteNameString) {
-      this.pageTexts['site_name'] = siteNameString;
+      Object.assign(this.pageTexts, { site_name: siteNameString });
     }
 
     const descriptionString = await PageTextHelper.descriptionString(page);
     if (descriptionString) {
-      this.pageTexts['description'] = descriptionString;
+      Object.assign(this.pageTexts, { description: descriptionString });
       pageText += ` ${descriptionString}`;
     }
 
     const descSecondaryString = await PageTextHelper.secondaryTitleString(page);
     if (descSecondaryString) {
-      this.pageTexts['secondary_title'] = descSecondaryString;
+      Object.assign(this.pageTexts, { secondary_title: descSecondaryString });
     }
 
     try {
       // eslint-disable-next-line no-undef
       const bodyHTML = await page.evaluate(() => (document.body ? document.body.innerHTML : ''));
-      let _text = await extractPageText(bodyHTML);
-      pageText += ` ${_text}`;
+      const text = await extractPageText(bodyHTML);
+      pageText += ` ${text}`;
 
       let textBuffer;
       if (Buffer.byteLength(pageText, 'utf8') > 65534) {
@@ -380,7 +380,7 @@ class PuppeteerBrowser extends Browser {
         textBuffer = Buffer.from(pageText);
       }
 
-      this.pageTexts['page_text'] = textBuffer.toString();
+      Object.assign(this.pageTexts, { page_text: textBuffer.toString() });
     } catch (e) {
       this.log(`Failed page text: ${e.message}`, 'driver', 'error');
     }
@@ -391,7 +391,7 @@ class PuppeteerBrowser extends Browser {
       const metas = await extractMetadata(fullBody, url);
 
       if (Object.prototype.hasOwnProperty.call(metas, 'jsonld')) {
-        this.pageTexts['jsonld'] = metas.jsonld;
+        Object.assign(this.pageTexts, { jsonld: metas.jsonld });
       }
     } catch (e) {
       this.log(`Failed extracting json-ld: ${e.message}`, 'driver', 'error');
