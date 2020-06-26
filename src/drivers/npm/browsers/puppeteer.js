@@ -347,18 +347,18 @@ class PuppeteerBrowser extends Browser {
     const titleString = await PageTextHelper.titleString(page);
     if (titleString) {
       Object.assign(this.pageTexts, { title: titleString });
-      pageText += ` ${titleString}`;
-    }
-
-    const siteNameString = await PageTextHelper.siteNameString(page);
-    if (siteNameString) {
-      Object.assign(this.pageTexts, { site_name: siteNameString });
+      pageText += titleString;
     }
 
     const descriptionString = await PageTextHelper.descriptionString(page);
     if (descriptionString) {
       Object.assign(this.pageTexts, { description: descriptionString });
       pageText += ` ${descriptionString}`;
+    }
+
+    const siteNameString = await PageTextHelper.siteNameString(page);
+    if (siteNameString) {
+      Object.assign(this.pageTexts, { site_name: siteNameString });
     }
 
     const descSecondaryString = await PageTextHelper.secondaryTitleString(page);
