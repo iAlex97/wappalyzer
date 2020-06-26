@@ -5,6 +5,7 @@ const path = require('path');
 const { fork } = require('child_process');
 const LanguageDetect = require('languagedetect');
 const Wappalyzer = require('./wappalyzer');
+const InvalidRedirectError = require('./errors/InvalidRedirectError');
 
 const languageDetect = new LanguageDetect();
 
@@ -105,6 +106,7 @@ class Driver {
     this.origPageUrl = url.parse(pageUrl);
     this.origDomain = psl.parse(this.origPageUrl.hostname);
     this.recoveredTimeoutError = false;
+    this.redirectUrl = null;
     this.analyzedPageUrls = {};
     this.apps = [];
     this.basePaths = [];
@@ -272,6 +274,12 @@ class Driver {
         this.log(`child_process exited with code ${code}`, 'driver', 'info');
         if (code === 0) {
           resolve(res);
+        } else if (Object.prototype.hasOwnProperty.call(res, 'error')) {
+          if (res.error.type === 'redirect') {
+            reject(new InvalidRedirectError(res.error.originalUrl, res.error.redirectUrl));
+          } else {
+            reject(new Error(res.error.message));
+          }
         } else {
           reject();
         }
@@ -285,6 +293,8 @@ class Driver {
           Object.assign(res, { ss: message.data.data });
         } else if (message.type === 'data') {
           Object.assign(res, message.data);
+        } else if (message.type === 'error') {
+          Object.assign(res, { error: message.data });
         }
       });
     }));
@@ -293,18 +303,21 @@ class Driver {
   async visit(pageUrl, timerScope, retry = false) {
     this.timer(`visit start; url: ${pageUrl.href}`, timerScope);
 
+    const ss = this.screenshot === null;
+    const simpleLoad = this.recoveredTimeoutError || retry;
+    const first = this.origPageUrl === pageUrl;
+
     let browser;
     try {
-      const ss = this.screenshot === null;
-      const simpleLoad = this.recoveredTimeoutError || retry;
-      const first = this.origPageUrl === pageUrl;
-
       browser = await this.browserFork(pageUrl, simpleLoad, ss, first, this.options);
     } catch (error) {
-      if (!retry) {
+      if (error instanceof InvalidRedirectError && first) {
+        this.redirectUrl = error.redirectUrl;
+      } else if (!retry) {
         this.log('Retrying page visit', 'browser', 'warn');
         throw new Error('RESPONSE_NOT_OK_RETRY');
       }
+
       this.log(error.message, 'browser', 'error');
       throw new Error('RESPONSE_NOT_OK');
     }
@@ -378,7 +391,8 @@ class Driver {
 
   copyPageTexts(pageTexts) {
     ['title', 'site_name', 'description', 'secondary_title', 'page_text', 'jsonld'].forEach((key) => {
-      if (!Object.prototype.hasOwnProperty.call(this.pageTexts, key) && Object.prototype.hasOwnProperty.call(pageTexts, key)) {
+      if (!Object.prototype.hasOwnProperty.call(this.pageTexts, key)
+        && Object.prototype.hasOwnProperty.call(pageTexts, key)) {
         Object.assign(this.pageTexts, { [key]: pageTexts[key] });
       }
     });
@@ -411,9 +425,25 @@ class Driver {
       urls: this.analyzedPageUrls,
       applications: this.apps,
       meta: this.meta,
+      redirect: this.getRedirectInfo(),
       otherTechnologies: this.notDetectedTech,
       screenshot: this.screenshot,
       pageTexts: this.pageTexts,
+    };
+  }
+
+  getRedirectInfo() {
+    if (this.redirectUrl === null) {
+      return {
+        detected: false,
+      };
+    }
+    const u = url.parse(this.redirectUrl).hostname;
+    const d = psl.parse(u).domain;
+    return {
+      detected: (this.redirectUrl !== null),
+      url: this.redirectUrl,
+      domain: d,
     };
   }
 

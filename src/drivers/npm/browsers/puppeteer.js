@@ -23,6 +23,7 @@ const fs = require('fs').promises;
 const psl = require('psl');
 const urll = require('url');
 const { RejectAfter, extractPageText, extractMetadata } = require('../utils');
+const InvalidRedirectError = require('../errors/InvalidRedirectError');
 const PageTextHelper = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
@@ -176,7 +177,7 @@ class PuppeteerBrowser extends Browser {
           });
 
           page.on('dialog', async (dialog) => {
-            this.log('Dismissing dialog');
+            this.log('Dismissing dialog', 'info');
             if (dialog.type() === 'prompt') {
               await dialog.accept('');
             } else {
@@ -214,14 +215,16 @@ class PuppeteerBrowser extends Browser {
               }
 
               if (checkSameDomain(url, page.url())) {
-                this.log(`Redirected from ${url} to ${page.url()}`);
+                this.log(`Redirected from ${url} to ${page.url()}`, 'info');
               } else {
-                throw new Error(`Invalid redirect from ${url} to ${page.url()}`);
+                throw new InvalidRedirectError(url, page.url());
               }
             }
           } catch (error) {
             if (error instanceof TimeoutError) {
               this.log('Attempt to ignore timeout error');
+            } else if (error instanceof InvalidRedirectError) {
+              throw error;
             } else {
               throw new Error(error.message || error.toString());
             }
@@ -280,13 +283,20 @@ class PuppeteerBrowser extends Browser {
 
           resolve();
         } catch (error) {
-          reject(new Error(`visit error: ${error.message || error}`));
+          if (error instanceof InvalidRedirectError) {
+            reject(error);
+          } else {
+            reject(new Error(`visit error: ${error.message || error}`));
+          }
         }
       });
     } catch (error) {
       this.log(`visit error: ${error.message || error} (${url})`, 'error');
-
-      throw new Error(error.message || error.toString());
+      if (error instanceof InvalidRedirectError) {
+        throw error;
+      } else {
+        throw new Error(error.message || error.toString());
+      }
     } finally {
       done = true;
 
@@ -295,14 +305,14 @@ class PuppeteerBrowser extends Browser {
         try {
           await browser.close();
 
-          this.log('browser close ok');
+          this.log('browser close ok', 'info');
         } catch (error) {
           this.log(`browser close error: ${error.message || error}`, 'error');
         }
       }
     }
 
-    this.log(`visit ok (${url})`);
+    this.log(`visit ok (${url})`, 'info');
   }
 
   async screenshotTimeout(page) {

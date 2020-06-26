@@ -1,4 +1,5 @@
 const Browser = require('./puppeteer');
+const InvalidRedirectError = require('../errors/InvalidRedirectError');
 
 if (process.argv.length < 4) {
   process.exit(1);
@@ -58,6 +59,10 @@ process.on('unhandledRejection', unhandledRejectionHandler);
     process.exit(0);
   } catch (error) {
     browser.log(`page ${mUrl} error: ${error.message || error}`, 'error');
+
+    Object.assign(error, { type: error instanceof InvalidRedirectError ? 'redirect' : 'generic' });
+    await ipc('error', error);
+
     process.exit(2);
   } finally {
     process.removeListener('unhandledRejection', unhandledRejectionHandler);
