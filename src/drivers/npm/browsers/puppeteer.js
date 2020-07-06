@@ -139,6 +139,8 @@ class PuppeteerBrowser extends Browser {
                   } else {
                     request.continue();
                   }
+                } else {
+                  request.abort();
                 }
               } catch (error) {
                 reject(new Error(`page error: ${error.message || error}`));
@@ -186,7 +188,7 @@ class PuppeteerBrowser extends Browser {
           });
 
           page.on('console', ({ _type, _text, _location }) => {
-            if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector/.test(_text)) {
+            if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector|JSHandle@error/.test(_text)) {
               this.log(`${_text} (${_location.url}: ${_location.lineNumber})`, _type);
             }
           });
@@ -236,14 +238,14 @@ class PuppeteerBrowser extends Browser {
             page.removeAllListeners('console');
           }
 
-          await Promise.race([
+          this.html = await Promise.race([
             page.content(),
             RejectAfter(5000, 'Unrecoverable timeout error'),
           ]);
 
           // eslint-disable-next-line no-undef
           const links = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('a')).map(({
-            hash, hostname, href, pathname, protocol, rel,
+            hash, hostname, href, pathname, protocol, rel, search,
           }) => ({
             hash,
             hostname,
@@ -251,6 +253,7 @@ class PuppeteerBrowser extends Browser {
             pathname,
             protocol,
             rel,
+            search,
           })));
 
           this.links = await links.jsonValue();
@@ -272,7 +275,6 @@ class PuppeteerBrowser extends Browser {
             name, value, domain, path,
           }));
 
-          this.html = await page.content();
           if (screenshot) {
             await this.screenshotTimeout(page);
           }

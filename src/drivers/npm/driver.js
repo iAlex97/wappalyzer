@@ -369,7 +369,7 @@ class Driver {
           && psl.parse(link.hostname).domain === this.origDomain.domain
           && extensions.test(link.pathname)
         ) {
-          const href = link.href.replace(link.hash, '');
+          const href = `${link.protocol}//${link.hostname}${link.pathname}${link.search}`;
           const bp = getBasePath(link.pathname);
 
           if (!results.some(x => x.href === href) && !this.basePaths.some(x => x === bp)) {
