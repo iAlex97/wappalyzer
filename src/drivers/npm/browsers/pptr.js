@@ -37,6 +37,11 @@ const unhandledRejectionHandler = (error) => {
 };
 process.on('unhandledRejection', unhandledRejectionHandler);
 
+setTimeout(() => {
+  browser.log(`page ${mUrl} hard timeout error`, 'error');
+  process.exit(20);
+}, options.maxWait * 2 + 5000);
+
 (async () => {
   try {
     await browser.visit(mUrl, screenshot, simple, first);
