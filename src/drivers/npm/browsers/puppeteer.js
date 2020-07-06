@@ -187,11 +187,11 @@ class PuppeteerBrowser extends Browser {
             }
           });
 
-          page.on('console', ({ _type, _text, _location }) => {
-            if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector|JSHandle@error/.test(_text)) {
-              this.log(`${_text} (${_location.url}: ${_location.lineNumber})`, _type);
-            }
-          });
+          // page.on('console', ({ _type, _text, _location }) => {
+          //   if (!/Failed to load resource: net::ERR_FAILED|Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector|JSHandle@error/.test(_text)) {
+          //     this.log(`${_text} (${_location.url}: ${_location.lineNumber})`, _type);
+          //   }
+          // });
 
           if (this.options.userAgent) {
             await page.setUserAgent(this.options.userAgent);
@@ -238,10 +238,12 @@ class PuppeteerBrowser extends Browser {
             page.removeAllListeners('console');
           }
 
+          this.log(`${url} Step 0`);
           this.html = await Promise.race([
             page.content(),
             RejectAfter(5000, 'Unrecoverable timeout error'),
           ]);
+          this.log(`${url} Step 1`);
 
           // eslint-disable-next-line no-undef
           const links = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('a')).map(({
@@ -258,30 +260,37 @@ class PuppeteerBrowser extends Browser {
 
           this.links = await links.jsonValue();
           await links.dispose();
+          this.log(`${url} Step 2`);
 
           // eslint-disable-next-line no-undef
           const scripts = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('script')).map(({
             src,
           }) => src));
+          this.log(`${url} Step 3`);
 
           this.scripts = (await scripts.jsonValue()).filter(script => script);
           await scripts.dispose();
+          this.log(`${url} Step 4`);
 
           this.js = await page.evaluate(getJs);
+          this.log(`${url} Step 5`);
 
           this.cookies = (await page.cookies()).map(({
             name, value, domain, path,
           }) => ({
             name, value, domain, path,
           }));
+          this.log(`${url} Step 6`);
 
           if (screenshot) {
             await this.screenshotTimeout(page);
           }
+          this.log(`${url} Step 7`);
           if (first) {
             await this.extractJsonLd(this.html, url);
           }
           await this.extractPageTextsTimeout(page);
+          this.log(`${url} Step 8`);
 
           resolve();
         } catch (error) {
