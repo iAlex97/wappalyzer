@@ -22,7 +22,10 @@ const fetch = require('cross-fetch');
 const fs = require('fs').promises;
 const psl = require('psl');
 const urll = require('url');
-const { RejectAfter, extractPageText, extractMetadata } = require('../utils');
+
+const {
+  RejectAfter, extractPageText, extractMetadata, extractSecondaryTitle,
+} = require('../utils');
 const InvalidRedirectError = require('../errors/InvalidRedirectError');
 const PageTextHelper = require('../extras/page_text_helper');
 const Browser = require('../browser');
@@ -278,10 +281,20 @@ class PuppeteerBrowser extends Browser {
           if (screenshot) {
             await this.screenshotTimeout(page);
           }
-          if (first) {
-            await this.extractJsonLd(this.html, url);
+
+          if (Object.keys(this.pageTexts).length < 6) {
+            try {
+              const metas = await extractMetadata(this.html, url);
+
+              await Promise.all([
+                this.extractPageTextFromMetas(metas, first),
+                this.extractSecondaryTitleFromHtml(this.html),
+              ]);
+              await this.extractPageTextFromHtml(this.html);
+            } catch (e) {
+              this.log(`Failed extracting json-ld: ${e.message}`, 'driver', 'error');
+            }
           }
-          await this.extractPageTextsTimeout(page);
 
           resolve();
         } catch (error) {
@@ -332,47 +345,52 @@ class PuppeteerBrowser extends Browser {
     }
   }
 
-  async extractPageTextsTimeout(page) {
-    try {
-      await Promise.race([
-        this.extractPageTexts(page),
-        RejectAfter(3000, 'Failed extracting page texts'),
-      ]);
-    } catch (error) {
-      this.log(error.message || error, 'error');
+  async extractPageTextFromMetas(metas, first) {
+    if (!Object.prototype.hasOwnProperty.call(this.pageTexts, 'title')) {
+      const titleString = PageTextHelper.titleStringMetas(metas);
+      if (titleString) {
+        Object.assign(this.pageTexts, { title: titleString });
+      }
+    }
+    if (!Object.prototype.hasOwnProperty.call(this.pageTexts, 'description')) {
+      const descriptionString = PageTextHelper.descriptionStringMetas(metas);
+      if (descriptionString) {
+        Object.assign(this.pageTexts, { description: descriptionString });
+      }
+    }
+    if (!Object.prototype.hasOwnProperty.call(this.pageTexts, 'site_name')) {
+      const siteNameString = PageTextHelper.siteNameStringMetas(metas);
+      if (siteNameString) {
+        Object.assign(this.pageTexts, { site_name: siteNameString });
+      }
+    }
+    if (first && Object.prototype.hasOwnProperty.call(metas, 'jsonld')) {
+      Object.assign(this.pageTexts, { jsonld: metas.jsonld });
     }
   }
 
-  async extractPageTexts(page) {
-    let pageText = '';
-
-    const titleString = await PageTextHelper.titleString(page);
-    if (titleString) {
-      Object.assign(this.pageTexts, { title: titleString });
-      pageText += titleString;
-    }
-
-    const descriptionString = await PageTextHelper.descriptionString(page);
-    if (descriptionString) {
-      Object.assign(this.pageTexts, { description: descriptionString });
-      pageText += ` ${descriptionString}`;
-    }
-
-    const siteNameString = await PageTextHelper.siteNameString(page);
-    if (siteNameString) {
-      Object.assign(this.pageTexts, { site_name: siteNameString });
-    }
-
-    const descSecondaryString = await PageTextHelper.secondaryTitleString(page);
-    if (descSecondaryString) {
-      Object.assign(this.pageTexts, { secondary_title: descSecondaryString });
+  async extractSecondaryTitleFromHtml(fullHtml) {
+    if (Object.prototype.hasOwnProperty.call(this.pageTexts, 'secondary_title')) {
+      return;
     }
 
     try {
-      // eslint-disable-next-line no-undef
-      const bodyHTML = await page.evaluate(() => (document.body ? document.body.innerHTML : ''));
-      const text = await extractPageText(bodyHTML);
-      pageText += ` ${text}`;
+      const descSecondaryString = await extractSecondaryTitle(fullHtml);
+      if (descSecondaryString) {
+        Object.assign(this.pageTexts, { secondary_title: descSecondaryString });
+      }
+    } catch (e) {
+      this.log(`Failed secondary page text: ${e.message}`, 'driver', 'error');
+    }
+  }
+
+  async extractPageTextFromHtml(fullHtml) {
+    if (Object.prototype.hasOwnProperty.call(this.pageTexts, 'page_text')) {
+      return;
+    }
+    try {
+      const text = await extractPageText(fullHtml);
+      const pageText = `${this.pageTexts.title || ''} ${this.pageTexts.description || ''} ${text}`;
 
       let textBuffer;
       if (Buffer.byteLength(pageText, 'utf8') > 65534) {
@@ -385,18 +403,6 @@ class PuppeteerBrowser extends Browser {
       Object.assign(this.pageTexts, { page_text: textBuffer.toString() });
     } catch (e) {
       this.log(`Failed page text: ${e.message}`, 'driver', 'error');
-    }
-  }
-
-  async extractJsonLd(fullBody, url) {
-    try {
-      const metas = await extractMetadata(fullBody, url);
-
-      if (Object.prototype.hasOwnProperty.call(metas, 'jsonld')) {
-        Object.assign(this.pageTexts, { jsonld: metas.jsonld });
-      }
-    } catch (e) {
-      this.log(`Failed extracting json-ld: ${e.message}`, 'driver', 'error');
     }
   }
 }

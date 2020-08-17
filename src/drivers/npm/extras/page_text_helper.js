@@ -8,76 +8,83 @@ const blacklistedSiteNames = ['mysite', 'website', 'home', ' ', 'classy', 'blog
   'meinewebsite', '-customer value-', 'youtube', 'website-2', 'construction-company', 'home page', 'default site',
   'main website', 'my wordpress', '/', 'start', 'facebook'];
 
-const getTextForXPath = async (page, xpath, attribute = 'textContent') => {
-  const elements = await page.$x(xpath);
-  const tempProperties = await Promise.all(elements.map(element => element.getProperty(attribute)));
-  const tempTexts = await Promise.all(tempProperties.map(property => property.jsonValue()));
-  const texts = [];
-
-  elements.forEach(e => e.dispose());
-  tempProperties.forEach(p => p.dispose());
-
-  tempTexts.forEach((tempText) => {
-    if (tempText && !texts.includes(tempText.trim())) {
-      texts.push(tempText.trim());
-    }
-  });
-
-  if (texts.length === 1) {
-    return texts[0];
-  }
-  if (texts.length > 1) {
-    return texts.join(' ');
-  }
-  return '';
-};
-
 class PageTextHelper {
-  static async titleString(page) {
-    let titleString = await getTextForXPath(page, '//head/title');
-    if (!titleString) {
-      titleString = await getTextForXPath(page, '//head/meta[@property="og:title"]', 'content');
+  static titleStringMetas(metas) {
+    let titleString = '';
+    if (metas.html && metas.html.title) {
+      titleString = metas.html.title;
     }
-    if (!titleString) {
-      titleString = await getTextForXPath(page, '//meta[contains(@property, "title")]', 'content');
+    if (!titleString && metas.twitter && metas.twitter.title) {
+      titleString = metas.twitter.title;
     }
-
+    if (!titleString && metas.jsonld && Array.isArray(metas.jsonld)) {
+      titleString = this.findKeyInIterable(metas.jsonld, 'title');
+    }
+    if (!titleString && metas.rdfa && Array.isArray(metas.rdfa)) {
+      titleString = this.findKeyInIterable(metas.rdfa, 'og:title');
+    }
+    if (!titleString && metas.microdata && Array.isArray(metas.microdata)) {
+      titleString = this.findKeyInIterable(metas.microdata, 'title');
+    }
     return titleString.trim().substring(0, 250);
   }
 
-  static async siteNameString(page) {
-    const siteName = (await getTextForXPath(page, "//head/meta[@property='og:site_name']", 'content'));
-    if (blacklistedSiteNames.includes(siteName.toLowerCase())) {
+  static siteNameStringMetas(metas) {
+    let siteNameString = '';
+    if (!siteNameString && metas.rdfa && Array.isArray(metas.rdfa)) {
+      siteNameString = this.findKeyInIterable(metas.rdfa, 'og:site_name');
+    }
+    if (!siteNameString && metas.jsonld && Array.isArray(metas.jsonld)) {
+      siteNameString = this.findKeyInIterable(metas.jsonld, 'name');
+    }
+    if (!siteNameString && metas.microdata && Array.isArray(metas.microdata)) {
+      siteNameString = this.findKeyInIterable(metas.microdata, 'name');
+    }
+    if (blacklistedSiteNames.includes(siteNameString.toLowerCase())) {
       return null;
     }
-    return siteName.trim().substring(0, 250);
+    return siteNameString.trim().substring(0, 250);
   }
 
-  static async secondaryTitleString(page) {
-    const descXpaths = ['//h1', '//h2'];
+  static descriptionStringMetas(metas) {
     let descriptionString = '';
-    for (const xpath of descXpaths) {
-      descriptionString = await getTextForXPath(page, xpath);
-      if (descriptionString) {
-        break;
-      }
+    if (metas.html && metas.html.description) {
+      descriptionString = metas.html.description;
+    }
+    if (!descriptionString && metas.twitter && metas.twitter.description) {
+      descriptionString = metas.twitter.description;
+    }
+    if (!descriptionString && metas.jsonld && Array.isArray(metas.jsonld)) {
+      descriptionString = this.findKeyInIterable(metas.jsonld, 'description');
+    }
+    if (!descriptionString && metas.rdfa && Array.isArray(metas.rdfa)) {
+      descriptionString = this.findKeyInIterable(metas.rdfa, 'og:description');
+    }
+    if (!descriptionString && metas.microdata && Array.isArray(metas.microdata)) {
+      descriptionString = this.findKeyInIterable(metas.microdata, 'description');
     }
     return descriptionString.trim().substring(0, 250);
   }
 
-  static async descriptionString(page) {
-    let descriptionString = '';
-
-    const descXpaths = ["//head/meta[@name='description']", "//head/meta[@property='og:description']", '//meta[contains(@name, "desc")]',
-      '//meta[contains(@property, "desc")]', '//meta[contains(@name, "DESC")]', '//meta[contains(@name, "Desc")]'];
-    for (const xpath of descXpaths) {
-      descriptionString = await getTextForXPath(page, xpath, 'content');
-      if (descriptionString) {
-        break;
+  static findKeyInIterable(arr, key) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const elem of arr) {
+      if (!Object.prototype.hasOwnProperty.call(elem, key)) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      if (Array.isArray(elem[key])) {
+        // eslint-disable-next-line no-restricted-syntax
+        for (const val of elem[key]) {
+          if (Object.prototype.hasOwnProperty.call(val, '@value')) {
+            return val['@value'];
+          }
+        }
+      } else if (typeof elem[key] === 'string') {
+        return elem[key];
       }
     }
-
-    return descriptionString.trim().substring(0, 250);
+    return '';
   }
 }
 

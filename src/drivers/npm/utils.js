@@ -28,17 +28,18 @@ module.exports.extractMetadata = (html, url) => new Promise((resolve, reject) =>
 
 module.exports.extractPageText = html => new Promise((resolve, reject) => {
   let result = '';
-  let inhibit = false;
+  const inhibit = {};
   const parser = new Parser({
     onopentag(name, attribs) {
-      if (name === 'script' || name === 'style') {
-        inhibit = true;
+      if (name === 'script' || name === 'style' || name === 'head') {
+        inhibit[name] = true;
       } else if (name === 'li') {
         result += '- ';
       }
     },
     ontext(text) {
-      if (!inhibit) {
+      const inh = Object.values(inhibit).reduce((prev, current) => prev || current, false);
+      if (!inh) {
         const trimmed = text.trim();
         if (trimmed !== '') {
           result += `${trimmed} `;
@@ -46,8 +47,41 @@ module.exports.extractPageText = html => new Promise((resolve, reject) => {
       }
     },
     onclosetag(tagname) {
-      if (tagname === 'script' || tagname === 'style') {
+      if (tagname === 'script' || tagname === 'style' || tagname === 'head') {
+        inhibit[tagname] = false;
+      }
+    },
+    onend() {
+      resolve(result);
+    },
+    onerror(error) {
+      reject(error);
+    },
+  }, { decodeEntities: true });
+  parser.write(html);
+  parser.end();
+});
+
+module.exports.extractSecondaryTitle = html => new Promise((resolve, reject) => {
+  let result = '';
+  let inhibit = true;
+  const parser = new Parser({
+    onopentag(name, attribs) {
+      if (name === 'h1' || name === 'h2') {
         inhibit = false;
+      }
+    },
+    ontext(text) {
+      if (!inhibit) {
+        const trimmed = text.trim().substring(0, 250);
+        if (trimmed && trimmed.length > 3) {
+          result = trimmed;
+        }
+      }
+    },
+    onclosetag(tagname) {
+      if (tagname === 'h1' || tagname === 'h2') {
+        inhibit = true;
       }
     },
     onend() {

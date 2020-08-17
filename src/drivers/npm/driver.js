@@ -267,10 +267,10 @@ class Driver {
   browserFork(pageUrl, simple, screenshot, first, options) {
     return new Promise(((resolve, reject) => {
       const flags = { simple, screenshot, first };
-      const ls = fork(`${__dirname}/browsers/pptr.js`, [pageUrl.href, JSON.stringify(flags), JSON.stringify(options)]);
+      const pptr = fork(`${__dirname}/browsers/pptr.js`, [pageUrl.href, JSON.stringify(flags), JSON.stringify(options)]);
       const res = {};
 
-      ls.on('exit', (code) => {
+      pptr.on('exit', (code) => {
         this.log(`child_process exited with code ${code}`, 'driver', 'info');
         if (code === 0) {
           resolve(res);
@@ -285,7 +285,7 @@ class Driver {
         }
       });
 
-      ls.on('message', (message) => {
+      pptr.on('message', (message) => {
         if (message.type === 'log') {
           const { message: msg, source, type } = message.data;
           this.log(msg, source, type);
