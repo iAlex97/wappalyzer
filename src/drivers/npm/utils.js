@@ -5,7 +5,7 @@ module.exports.RejectAfter = (ms, message) => new Promise((resolve, reject) => {
   setTimeout(() => reject(new Error(message)), ms);
 });
 
-module.exports.ResolveAfter = ms => new Promise(resolve => setTimeout(() => resolve, ms));
+module.exports.ResolveAfter = (ms, res) => new Promise(resolve => setTimeout(() => resolve(res), ms));
 
 module.exports.extractMetadata = (html, url) => new Promise((resolve, reject) => {
   const handler = new Handler(

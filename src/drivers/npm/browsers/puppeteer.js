@@ -24,7 +24,7 @@ const psl = require('psl');
 const urll = require('url');
 
 const {
-  RejectAfter, extractPageText, extractMetadata, extractSecondaryTitle,
+  RejectAfter, ResolveAfter, extractPageText, extractMetadata, extractSecondaryTitle,
 } = require('../utils');
 const InvalidRedirectError = require('../errors/InvalidRedirectError');
 const { PageTextHelper, getLinksFromForms } = require('../extras/page_text_helper');
@@ -262,8 +262,11 @@ class PuppeteerBrowser extends Browser {
           this.links = await links.jsonValue();
           await links.dispose();
 
-          const formLinks = await getLinksFromForms(page);
+          const formLinks = await Promise.race([
+            getLinksFromForms(page), ResolveAfter(3000, []),
+          ]);
           if (formLinks && formLinks.length > 0) {
+            this.log(`Found ${formLinks.length} form links`, 'driver', 'error');
             this.links = this.links.concat(formLinks);
           }
 

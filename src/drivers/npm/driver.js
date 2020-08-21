@@ -350,17 +350,8 @@ class Driver {
       this.wappalyzer.log(`${error.message || error}; url: ${pageUrl.href}`, 'driver', 'error');
     }
 
-    await this.wappalyzer.analyze(pageUrl, {
-      cookies,
-      headers,
-      html,
-      js,
-      scripts,
-      language,
-    });
-
     const previousUrls = Object.keys(this.analyzedPageUrls);
-    const reducedLinks = Array.prototype.reduce.call(
+    const pageLinks = Array.prototype.reduce.call(
       browser.links, (results, link) => {
         if (
           results
@@ -385,11 +376,20 @@ class Driver {
         return results;
       }, [],
     );
-    reducedLinks.sort((lhs, rhs) => lhs.slashesCount - rhs.slashesCount);
+    pageLinks.sort((lhs, rhs) => lhs.slashesCount - rhs.slashesCount);
 
+    await this.wappalyzer.analyze(pageUrl, {
+      cookies,
+      headers,
+      html,
+      js,
+      scripts,
+      pageLinks,
+      language,
+    });
     // this.emit('visit', { browser, pageUrl });
 
-    return reducedLinks;
+    return pageLinks;
   }
 
   copyPageTexts(pageTexts) {

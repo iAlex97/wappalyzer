@@ -156,6 +156,7 @@ class Wappalyzer {
       cookies,
       headers,
       js,
+      pageLinks,
     } = data;
 
     let { html } = data;
@@ -204,6 +205,10 @@ class Wappalyzer {
       if (html) {
         promises.push(this.analyzeHtml(app, html));
         promises.push(this.analyzeMeta(app, metaTags));
+      }
+
+      if (pageLinks) {
+        promises.push(this.analyzeAllLinks(app, pageLinks));
       }
 
       if (scripts) {
@@ -376,14 +381,7 @@ class Wappalyzer {
             }
           } else {
             attrs.string = attr;
-
-            try {
-              attrs.regex = new RegExp(attr.replace('/', '\/'), 'i'); // Escape slashes in regular expression
-            } catch (error) {
-              attrs.regex = new RegExp();
-
-              this.log(`${error.message}: ${attr}`, 'error', 'core');
-            }
+            attrs.regex = new RegExp(attr.replace(/\//g, '\\/'), 'i');
           }
         });
 
@@ -566,6 +564,25 @@ class Wappalyzer {
     }
 
     this.ping();
+  }
+
+  /**
+   * Analyze script tag
+   */
+  analyzeAllLinks(app, urls) {
+    const patterns = this.parsePatterns(app.props.url);
+
+    if (!patterns.length) {
+      return Promise.resolve();
+    }
+
+    return asyncForEach(patterns, (pattern) => {
+      urls.forEach((uri) => {
+        if (pattern.regex.test(uri.href)) {
+          addDetected(app, pattern, 'url', uri.href);
+        }
+      });
+    });
   }
 
   /**
