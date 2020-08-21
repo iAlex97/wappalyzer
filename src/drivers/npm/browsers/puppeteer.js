@@ -27,7 +27,7 @@ const {
   RejectAfter, extractPageText, extractMetadata, extractSecondaryTitle,
 } = require('../utils');
 const InvalidRedirectError = require('../errors/InvalidRedirectError');
-const {PageTextHelper, getLinksFromForms} = require('../extras/page_text_helper');
+const { PageTextHelper, getLinksFromForms } = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
 function getJs() {

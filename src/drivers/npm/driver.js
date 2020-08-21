@@ -11,7 +11,8 @@ const languageDetect = new LanguageDetect();
 
 languageDetect.setLanguageType('iso2');
 
-const json = JSON.parse(fs.readFileSync(path.resolve(`${__dirname}/apps.json`)));
+const appsJsonPath = process.env.APPS_JSON_PATH || path.resolve(`${__dirname}/apps.json`);
+const json = JSON.parse(fs.readFileSync(appsJsonPath).toString());
 
 const extensions = /(^[^.]+$|\.(asp|aspx|cgi|htm|html|jsp|php)$)/;
 
@@ -21,10 +22,10 @@ const errorTypes = {
   NO_HTML_DOCUMENT: 'No HTML document',
 };
 
-function getBasePath(pathname) {
-  const basePathIdx = pathname.indexOf('/', 1);
-  return basePathIdx === -1 ? pathname : pathname.substring(0, basePathIdx);
-}
+// function getBasePath(pathname) {
+//   const basePathIdx = pathname.indexOf('/', 1);
+//   return basePathIdx === -1 ? pathname : pathname.substring(0, basePathIdx);
+// }
 
 function sleep(ms) {
   return ms ? new Promise(resolve => setTimeout(resolve, ms)) : Promise.resolve();
@@ -231,7 +232,7 @@ class Driver {
     // Return when the URL is a duplicate or maxUrls has been reached
     if (
       this.analyzedPageUrls[pageUrl.href]
-      || this.analyzedPageUrls.length >= this.options.maxUrls
+      || Object.keys(this.analyzedPageUrls).length >= this.options.maxUrls
     ) {
       return [];
     }
