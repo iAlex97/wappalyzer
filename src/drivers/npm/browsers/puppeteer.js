@@ -27,7 +27,7 @@ const {
   RejectAfter, extractPageText, extractMetadata, extractSecondaryTitle,
 } = require('../utils');
 const InvalidRedirectError = require('../errors/InvalidRedirectError');
-const PageTextHelper = require('../extras/page_text_helper');
+const {PageTextHelper, getLinksFromForms} = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
 function getJs() {
@@ -261,6 +261,11 @@ class PuppeteerBrowser extends Browser {
 
           this.links = await links.jsonValue();
           await links.dispose();
+
+          const formLinks = await getLinksFromForms(page);
+          if (formLinks && formLinks.length > 0) {
+            this.links = this.links.concat(formLinks);
+          }
 
           // eslint-disable-next-line no-undef
           const scripts = await page.evaluateHandle(() => Array.from(document.getElementsByTagName('script')).map(({

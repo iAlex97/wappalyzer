@@ -358,6 +358,7 @@ class Driver {
       language,
     });
 
+    const previousUrls = Object.keys(this.analyzedPageUrls);
     const reducedLinks = Array.prototype.reduce.call(
       browser.links, (results, link) => {
         if (
@@ -370,13 +371,14 @@ class Driver {
           && extensions.test(link.pathname)
         ) {
           const href = `${link.protocol}//${link.hostname}${link.pathname}${link.search}`;
-          const bp = getBasePath(link.pathname);
+          // const bp = getBasePath(link.pathname);
 
-          if (!results.some(x => x.href === href) && !this.basePaths.some(x => x === bp)) {
+          // if (!results.some(x => x.href === href) && !this.basePaths.some(x => x === bp)) {
+          if (!results.some(x => x.href === href) && !previousUrls.includes(href)) {
             const parsedLink = url.parse(href);
             parsedLink.slashesCount = (parsedLink.pathname.match(/\//g) || []).length;
             results.push(parsedLink);
-            this.basePaths.push(bp);
+            // this.basePaths.push(bp);
           }
         }
         return results;

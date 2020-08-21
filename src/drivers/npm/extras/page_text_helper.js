@@ -1,3 +1,5 @@
+const url = require('url');
+
 const blacklistedSiteNames = ['mysite', 'website', 'home', ' ', 'classy', 'blog', 'default store view', 'default',
   'website-1', 'my site', 'welcome', 'english', 'my blog', 'mysite-1', 'blank title', 'online store', 'my website',
   'your site title', 'my cms', 'gitlab', 'jalbum', 'yelp', 'newsite', 'tumblr', 'main', 'custom logo cases',
@@ -7,6 +9,44 @@ const blacklistedSiteNames = ['mysite', 'website', 'home', ' ', 'classy', 'blog
   'support', 'vimeo', 'google docs', 'printing & more', 'pinterest', 'classic-layout', 'a wordpress site',
   'meinewebsite', '-customer value-', 'youtube', 'website-2', 'construction-company', 'home page', 'default site',
   'main website', 'my wordpress', '/', 'start', 'facebook'];
+
+const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
+
+const getLinksFromForms = async (page) => {
+  const elements = await page.$x('//form[@action]');
+  const children = await Promise.all(elements.map(element => element.$x('//button[@value]')));
+
+  const tempProperties = await Promise.all(elements.map(element => element.getProperty('action')));
+  const tempTexts = await Promise.all(tempProperties.map(property => property.jsonValue()));
+
+  const childrenProperties = await Promise.all(children.map(elem => Promise.all(elem.map(e => e.getProperty('value')))));
+  const childrenTexts = await Promise.all(childrenProperties.map(properties => Promise.all(properties.map(p => p.jsonValue()))));
+
+  const formLinks = zip(tempTexts, childrenTexts)
+    .map(([elem, child]) => child.map(c => `${elem}/${c}`))
+    .reduce((acc, curr) => acc.concat(curr), [])
+    .map(u => url.parse(u))
+    .filter(u => u.hostname)
+    .map(({
+      hash, hostname, href, pathname, protocol, rel, search,
+    }) => ({
+      hash: hash || '',
+      hostname,
+      href,
+      pathname,
+      protocol,
+      rel: rel || '',
+      search: search || '',
+    }));
+
+  elements.forEach(e => e.dispose());
+  tempProperties.forEach(p => p.dispose());
+
+  children.map(child => Promise.all(child.map(c => c.dispose())));
+  childrenProperties.map(child => Promise.all(child.map(c => c.dispose())));
+
+  return formLinks;
+};
 
 class PageTextHelper {
   static titleStringMetas(metas) {
@@ -88,4 +128,7 @@ class PageTextHelper {
   }
 }
 
-module.exports = PageTextHelper;
+module.exports = {
+  PageTextHelper,
+  getLinksFromForms,
+};
