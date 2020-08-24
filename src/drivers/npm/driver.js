@@ -111,6 +111,7 @@ class Driver {
     this.analyzedPageUrls = {};
     this.apps = [];
     this.basePaths = [];
+    this.loginMarkers = ['login', 'register', 'sign'];
     this.meta = {};
     this.listeners = {};
     this.screenshot = null;
@@ -377,6 +378,17 @@ class Driver {
       }, [],
     );
     pageLinks.sort((lhs, rhs) => lhs.slashesCount - rhs.slashesCount);
+    // prefer links who include login/signup pages as those may have custom technologies
+    const favoriteLinks = [];
+    pageLinks.forEach((link) => {
+      const lc = link.href.toLowerCase();
+      const pref = this.loginMarkers.find(marker => lc.includes(marker));
+      if (pref) {
+        favoriteLinks.splice(0, 0, link);
+      } else {
+        favoriteLinks.push(link);
+      }
+    });
 
     await this.wappalyzer.analyze(pageUrl, {
       cookies,
@@ -389,7 +401,7 @@ class Driver {
     });
     // this.emit('visit', { browser, pageUrl });
 
-    return pageLinks;
+    return favoriteLinks;
   }
 
   copyPageTexts(pageTexts) {
