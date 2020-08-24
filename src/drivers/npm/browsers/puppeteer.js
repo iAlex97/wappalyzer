@@ -243,7 +243,7 @@ class PuppeteerBrowser extends Browser {
 
           this.html = await Promise.race([
             page.content(),
-            RejectAfter(5000, 'Unrecoverable timeout error'),
+            RejectAfter(10000, 'Unrecoverable timeout error'),
           ]);
 
           // eslint-disable-next-line no-undef
