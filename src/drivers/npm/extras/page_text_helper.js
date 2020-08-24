@@ -39,11 +39,13 @@ const getLinksFromForms = async (page) => {
       search: search || '',
     }));
 
-  elements.forEach(e => e.dispose());
-  tempProperties.forEach(p => p.dispose());
+  const cleanup = [];
+  cleanup.push(...elements.map(e => e.dispose()));
+  cleanup.push(...tempProperties.map(p => p.dispose()));
 
-  children.map(child => Promise.all(child.map(c => c.dispose())));
-  childrenProperties.map(child => Promise.all(child.map(c => c.dispose())));
+  cleanup.push(...children.map(child => Promise.all(child.map(c => c.dispose()))));
+  cleanup.push(...childrenProperties.map(child => Promise.all(child.map(c => c.dispose()))));
+  await Promise.all(cleanup);
 
   return formLinks;
 };
