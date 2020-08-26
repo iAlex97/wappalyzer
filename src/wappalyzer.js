@@ -256,7 +256,7 @@ class Wappalyzer {
       this.log(`Processing ${Object.keys(data).join(', ')} took ${((new Date() - startTime) / 1000).toFixed(2)}s (${url.hostname})`, 'core');
 
       if (Object.keys(apps).length) {
-        this.log(`Identified ${Object.keys(apps).join(', ')} (${url.hostname})`, 'core');
+        this.log(`Identified ${Object.keys(apps).join(', ')} (${url.href})`, 'core');
       }
 
       this.driver.displayApps(this.detected[url.canonical], { language }, context);

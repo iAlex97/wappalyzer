@@ -93,6 +93,7 @@ class Driver {
       maxUrls: 10,
       maxWait: 5000,
       recursive: false,
+      chromiumArgs: [],
     }, options || {});
 
     this.options.debug = Boolean(+this.options.debug);
@@ -103,6 +104,7 @@ class Driver {
     this.options.maxWait = parseInt(this.options.maxWait, 10);
     this.options.htmlMaxCols = parseInt(this.options.htmlMaxCols, 10);
     this.options.htmlMaxRows = parseInt(this.options.htmlMaxRows, 10);
+    this.options.chromiumArgs = this.options.chromiumArgs || [];
 
     this.origPageUrl = url.parse(pageUrl);
     this.origDomain = psl.parse(this.origPageUrl.hostname);
@@ -420,6 +422,7 @@ class Driver {
 
     try {
       links = await this.fetch(pageUrl, index, depth);
+      this.wappalyzer.log(`extracted ${links.length || 0} urls; url: ${pageUrl.href}`, 'driver', 'debug');
     } catch (error) {
       const type = error.message && errorTypes[error.message] ? error.message : 'UNKNOWN_ERROR';
       const message = error.message && errorTypes[error.message] ? errorTypes[error.message] : 'Unknown error';
