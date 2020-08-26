@@ -412,6 +412,7 @@ class Driver {
       language,
     });
     // this.emit('visit', { browser, pageUrl });
+    this.wappalyzer.log(`extracted ${favoriteLinks.length || 0} urls; url: ${pageUrl.href}`, 'driver', 'debug');
 
     return favoriteLinks;
   }
@@ -432,7 +433,6 @@ class Driver {
 
     try {
       links = await this.fetch(pageUrl, index, depth);
-      this.wappalyzer.log(`extracted ${links.length || 0} urls; url: ${pageUrl.href}`, 'driver', 'debug');
     } catch (error) {
       const type = error.message && errorTypes[error.message] ? error.message : 'UNKNOWN_ERROR';
       const message = error.message && errorTypes[error.message] ? errorTypes[error.message] : 'Unknown error';
