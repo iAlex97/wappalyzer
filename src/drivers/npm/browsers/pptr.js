@@ -46,8 +46,9 @@ setTimeout(() => {
   try {
     await browser.visit(mUrl, screenshot, simple, first);
     const {
-      cookies, headers, scripts, js, html, links, statusCode, pageTexts,
+      cookies, headers, scripts, js, html, links, requestUrls, statusCode, pageTexts,
     } = browser;
+    const requestLinks = Array.from(requestUrls);
 
     if (browser.screenshot) {
       try {
@@ -58,7 +59,7 @@ setTimeout(() => {
     }
 
     await ipc('data', {
-      cookies, headers, scripts, js, html, links, statusCode, pageTexts,
+      cookies, headers, scripts, js, html, links, requestLinks, statusCode, pageTexts,
     });
 
     process.exit(0);

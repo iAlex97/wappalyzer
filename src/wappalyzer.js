@@ -157,6 +157,7 @@ class Wappalyzer {
       headers,
       js,
       pageLinks,
+      pageRequestLinks,
     } = data;
 
     let { html } = data;
@@ -209,6 +210,10 @@ class Wappalyzer {
 
       if (pageLinks) {
         promises.push(this.analyzeAllLinks(app, pageLinks));
+      }
+
+      if (pageRequestLinks) {
+        promises.push(this.analyzeAllRequests(app, pageRequestLinks));
       }
 
       if (scripts) {
@@ -567,7 +572,7 @@ class Wappalyzer {
   }
 
   /**
-   * Analyze script tag
+   * Analyze all URLs referenced by the current page
    */
   analyzeAllLinks(app, urls) {
     const patterns = this.parsePatterns(app.props.url);
@@ -580,6 +585,25 @@ class Wappalyzer {
       urls.forEach((uri) => {
         if (pattern.regex.test(uri.href)) {
           addDetected(app, pattern, 'url', uri.href);
+        }
+      });
+    });
+  }
+
+  /**
+   * Analyze all requests made by this page
+   */
+  analyzeAllRequests(app, requests) {
+    const patterns = this.parsePatterns(app.props.requests);
+
+    if (!patterns.length) {
+      return Promise.resolve();
+    }
+
+    return asyncForEach(patterns, (pattern) => {
+      requests.forEach((uri) => {
+        if (pattern.regex.test(uri)) {
+          addDetected(app, pattern, 'request', uri);
         }
       });
     });

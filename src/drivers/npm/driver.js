@@ -113,6 +113,7 @@ class Driver {
     this.analyzedPageUrls = {};
     this.apps = [];
     this.basePaths = [];
+    this.pageRedirects = [];
     this.loginMarkers = ['login', 'register', 'sign'];
     this.meta = {};
     this.listeners = {};
@@ -315,8 +316,11 @@ class Driver {
     try {
       browser = await this.browserFork(pageUrl, simpleLoad, ss, first, this.options);
     } catch (error) {
-      if (error instanceof InvalidRedirectError && first) {
-        this.redirectUrl = error.redirectUrl;
+      if (error instanceof InvalidRedirectError) {
+        if (first) {
+          this.redirectUrl = error.redirectUrl;
+        }
+        this.pageRedirects.push(error.redirectUrl);
       } else if (!retry) {
         this.log('Retrying page visit', 'browser', 'warn');
         throw new Error('RESPONSE_NOT_OK_RETRY');
@@ -340,7 +344,9 @@ class Driver {
     }
     this.copyPageTexts(browser.pageTexts);
 
-    const { cookies, headers, scripts } = browser;
+    const {
+      cookies, headers, scripts, requestLinks,
+    } = browser;
 
     const html = processHtml(browser.html, this.options.htmlMaxCols, this.options.htmlMaxRows);
     const js = processJs(browser.js, this.wappalyzer.jsPatterns);
@@ -392,6 +398,9 @@ class Driver {
       }
     });
 
+    const pageRequestLinks = this.pageRedirects.length > 0
+      ? requestLinks.concat(this.pageRedirects.splice(0, this.pageRedirects.length))
+      : requestLinks;
     await this.wappalyzer.analyze(pageUrl, {
       cookies,
       headers,
@@ -399,6 +408,7 @@ class Driver {
       js,
       scripts,
       pageLinks,
+      pageRequestLinks,
       language,
     });
     // this.emit('visit', { browser, pageUrl });

@@ -79,6 +79,7 @@ class PuppeteerBrowser extends Browser {
     super(options);
     this.pageTexts = {};
     this.screenshot = null;
+    this.requestUrls = new Set();
   }
 
   async visit(url, screenshot, simple, first) {
@@ -127,6 +128,7 @@ class PuppeteerBrowser extends Browser {
             await page.setRequestInterception(true);
             page.on('request', (request) => {
               try {
+                this.requestUrls.add(request.url());
                 if (
                   responseReceived
                   && request.isNavigationRequest()
