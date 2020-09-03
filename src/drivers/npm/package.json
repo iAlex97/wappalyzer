@@ -33,10 +33,10 @@
     "htmlparser2": "^4.1.0",
     "languagedetect": "^2.0.0",
     "psl": "^1.8.0",
-    "puppeteer": "^3.3.0",
+    "puppeteer": "^5.2.1",
     "zombie": "^6.1.4"
   },
   "peerDependencies": {
-    "puppeteer": "^2.0.0"
+    "puppeteer": "^5.2.1"
   }
 }

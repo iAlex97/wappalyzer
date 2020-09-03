@@ -1,5 +1,3 @@
-const { TimeoutError } = require('puppeteer/lib/Errors');
-
 const {
   AWS_LAMBDA_FUNCTION_NAME,
   CHROME_BIN,
@@ -17,6 +15,7 @@ if (AWS_LAMBDA_FUNCTION_NAME) {
   // eslint-disable-next-line global-require
   puppeteer = require('puppeteer');
 }
+const { TimeoutError } = puppeteer.errors;
 const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
 const fetch = require('cross-fetch');
 const fs = require('fs').promises;
