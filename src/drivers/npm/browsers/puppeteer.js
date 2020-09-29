@@ -29,13 +29,13 @@ const InvalidRedirectError = require('../errors/InvalidRedirectError');
 const { PageTextHelper, getLinksFromForms } = require('../extras/page_text_helper');
 const Browser = require('../browser');
 
-function getJs() {
+function getJsRecursive() {
   const dereference = (obj, level = 0, ts = -1) => {
     if (ts < 0) {
       ts = new Date().getTime();
     }
     if (new Date().getTime() - ts >= 2000) {
-      return undefined;
+      return '[Removed]';
     }
     try {
       // eslint-disable-next-line no-undef
@@ -47,7 +47,11 @@ function getJs() {
         obj = obj.map(item => dereference(item, level + 1, ts));
       }
 
-      if (typeof obj === 'function' || (typeof obj === 'object' && obj !== null)) {
+      if (obj === null) {
+        return null;
+      }
+
+      if (typeof obj === 'object') {
         const newObj = {};
 
         Object.keys(obj).forEach((key) => {
@@ -55,6 +59,10 @@ function getJs() {
         });
 
         return newObj;
+      }
+
+      if (typeof obj === 'function' && obj.name) {
+        return { [obj.name]: '' };
       }
 
       return obj;
@@ -65,6 +73,38 @@ function getJs() {
 
   // eslint-disable-next-line no-undef
   return dereference(window);
+}
+
+function getJs() {
+  const customStringify = (v) => {
+    const cache = new Set();
+    return JSON.stringify(v, (key, value) => {
+      if (value === null) {
+        return null;
+      }
+      if (typeof value === 'object') {
+        if (cache.has(value)) {
+          // Circular reference found
+          try {
+            // If this value does not reference a parent it can be deduped
+            return JSON.parse(JSON.stringify(value));
+          } catch (err) {
+            // discard key if value cannot be deduped
+            return '[Removed]';
+          }
+        }
+        // Store value in our set
+        cache.add(value);
+      }
+      if (typeof value === 'function' && value.name) {
+        return { [value.name]: '' };
+      }
+      return value;
+    });
+  };
+
+  // eslint-disable-next-line no-undef
+  return JSON.parse(customStringify(window));
 }
 
 function checkSameDomain(lhs, rhs) {
@@ -279,7 +319,10 @@ class PuppeteerBrowser extends Browser {
           this.scripts = (await scripts.jsonValue()).filter(script => script);
           await scripts.dispose();
 
-          this.js = await page.evaluate(getJs);
+          this.js = await page.evaluate(getJsRecursive);
+          if (!this.js) {
+            this.js = await page.evaluate(getJs);
+          }
 
           this.cookies = (await page.cookies()).map(({
             name, value, domain, path,
