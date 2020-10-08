@@ -1,4 +1,5 @@
 const Driver = require('./driver');
+const Puppeteer = require('./browsers/puppeteer');
 
 class Wappalyzer {
   constructor(pageUrl, options) {
@@ -9,4 +10,5 @@ class Wappalyzer {
   }
 }
 
-module.exports = Wappalyzer;
+module.exports.Wappalyzer = Wappalyzer;
+module.exports.Puppeteer = Puppeteer;
