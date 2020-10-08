@@ -18,9 +18,13 @@
     "src/browser.js",
     "src/browsers/zombie.js",
     "src/browsers/puppeteer.js",
+    "src/browsers/pptr.js",
+    "src/extras/page_text_helper.js",
+    "src/errors/InvalidRedirectError.js",
     "src/cli.js",
     "src/driver.js",
     "src/index.js",
+    "src/utils.js",
     "src/wappalyzer.js"
   ],
   "bin": {
