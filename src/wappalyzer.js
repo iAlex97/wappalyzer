@@ -157,6 +157,7 @@ class Wappalyzer {
       headers,
       js,
       pageLinks,
+      pageRequestLinks,
     } = data;
 
     let { html } = data;
@@ -211,6 +212,10 @@ class Wappalyzer {
         promises.push(this.analyzeAllLinks(app, pageLinks));
       }
 
+      if (pageRequestLinks) {
+        promises.push(this.analyzeAllRequests(app, pageRequestLinks));
+      }
+
       if (scripts) {
         promises.push(this.analyzeScripts(app, scripts));
       }
@@ -256,7 +261,7 @@ class Wappalyzer {
       this.log(`Processing ${Object.keys(data).join(', ')} took ${((new Date() - startTime) / 1000).toFixed(2)}s (${url.hostname})`, 'core');
 
       if (Object.keys(apps).length) {
-        this.log(`Identified ${Object.keys(apps).join(', ')} (${url.hostname})`, 'core');
+        this.log(`Identified ${Object.keys(apps).join(', ')} (${url.href})`, 'core');
       }
 
       this.driver.displayApps(this.detected[url.canonical], { language }, context);
@@ -567,7 +572,7 @@ class Wappalyzer {
   }
 
   /**
-   * Analyze script tag
+   * Analyze all URLs referenced by the current page
    */
   analyzeAllLinks(app, urls) {
     const patterns = this.parsePatterns(app.props.url);
@@ -580,6 +585,25 @@ class Wappalyzer {
       urls.forEach((uri) => {
         if (pattern.regex.test(uri.href)) {
           addDetected(app, pattern, 'url', uri.href);
+        }
+      });
+    });
+  }
+
+  /**
+   * Analyze all requests made by this page
+   */
+  analyzeAllRequests(app, requests) {
+    const patterns = this.parsePatterns(app.props.requests);
+
+    if (!patterns.length) {
+      return Promise.resolve();
+    }
+
+    return asyncForEach(patterns, (pattern) => {
+      requests.forEach((uri) => {
+        if (pattern.regex.test(uri)) {
+          addDetected(app, pattern, 'request', uri);
         }
       });
     });

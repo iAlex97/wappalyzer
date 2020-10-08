@@ -1,19 +1,47 @@
 {
-  "dependencies": {
-    "file-type": "7.4.*",
-    "is-svg": "2.1.*",
-    "read-chunk": "2.1.*"
+  "name": "wappalyzer",
+  "description": "Identify technology on websites",
+  "homepage": "https://www.wappalyzer.com",
+  "version": "5.9.34",
+  "author": "Wappalyzer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aliasio/wappalyzer"
   },
-  "devDependencies": {
+  "funding": {
+    "url": "https://github.com/sponsors/aliasio"
+  },
+  "main": "src/index.js",
+  "files": [
+    "src/apps.json",
+    "src/browser.js",
+    "src/browsers/zombie.js",
+    "src/browsers/puppeteer.js",
+    "src/cli.js",
+    "src/driver.js",
+    "src/index.js",
+    "src/wappalyzer.js"
+  ],
+  "bin": {
+    "wappalyzer": "src/cli.js"
+  },
+  "dependencies": {
+    "@cliqz/adblocker-puppeteer": "^1.18.2",
+    "cross-fetch": "^3.0.5",
+    "htmlmetaparser": "^2.0.3",
+    "htmlparser2": "^4.1.0",
+    "languagedetect": "^2.0.0",
+    "psl": "^1.8.0",
+    "puppeteer": "^5.2.1",
+    "zombie": "^6.1.4"
+  },
+  "peerDependencies": {
+    "puppeteer": "^5.2.1",
     "chai": "^4.1.2",
     "eslint": "^4.19.1",
     "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.13.0",
     "mocha": "^5.2.0"
-  },
-  "scripts": {
-    "test": "mocha -R spec src",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
   }
 }
