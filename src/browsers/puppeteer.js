@@ -111,7 +111,7 @@ function checkSameDomain(lhs, rhs) {
   return psl.parse(urll.parse(lhs).hostname).domain === psl.parse(urll.parse(rhs).hostname).domain;
 }
 
-class PuppeteerBrowser extends Browser {
+class Puppeteer extends Browser {
   constructor(options) {
     options.maxWait = options.maxWait || 60;
 
@@ -459,4 +459,4 @@ class PuppeteerBrowser extends Browser {
   }
 }
 
-module.exports = PuppeteerBrowser;
+module.exports = Puppeteer;
