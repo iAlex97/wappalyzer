@@ -13,7 +13,7 @@ if (AWS_LAMBDA_FUNCTION_NAME) {
   ({ puppeteer } = chromium);
 } else {
   // eslint-disable-next-line global-require
-  puppeteer = require('src/browsers/puppeteer');
+  puppeteer = require('puppeteer');
 }
 const { TimeoutError } = puppeteer.errors;
 const { PuppeteerBlocker } = require('@cliqz/adblocker-puppeteer');
@@ -111,7 +111,7 @@ function checkSameDomain(lhs, rhs) {
   return psl.parse(urll.parse(lhs).hostname).domain === psl.parse(urll.parse(rhs).hostname).domain;
 }
 
-class Puppeteer extends Browser {
+class PuppeteerBrowser extends Browser {
   constructor(options) {
     options.maxWait = options.maxWait || 60;
 
@@ -459,6 +459,4 @@ class Puppeteer extends Browser {
   }
 }
 
-module.exports = Puppeteer
-module.exports.getJsRecursive = getJsRecursive;
-module.exports.getJs = getJs;
+module.exports = PuppeteerBrowser
