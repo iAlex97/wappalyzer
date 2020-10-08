@@ -12,3 +12,4 @@ class Wappalyzer {
 
 module.exports.Wappalyzer = Wappalyzer;
 module.exports.Puppeteer = Puppeteer;
+module.exports.Driver = Driver;
