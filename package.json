@@ -12,7 +12,7 @@
   "funding": {
     "url": "https://github.com/sponsors/aliasio"
   },
-  "main": "index.js",
+  "main": "src/index.js",
   "files": [
     "src/apps.json",
     "src/browser.js",
@@ -25,8 +25,7 @@
     "src/driver.js",
     "src/index.js",
     "src/utils.js",
-    "src/wappalyzer.js",
-    "index.js"
+    "src/wappalyzer.js"
   ],
   "bin": {
     "wappalyzer": "src/cli.js"
