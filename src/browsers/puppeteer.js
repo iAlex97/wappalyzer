@@ -459,4 +459,6 @@ class Puppeteer extends Browser {
   }
 }
 
-module.exports = Puppeteer;
+module.exports = Puppeteer
+module.exports.getJsRecursive = getJsRecursive;
+module.exports.getJs = getJs;
