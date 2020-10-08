@@ -1,5 +1,5 @@
 const Driver = require('./driver');
-const Puppeteer = require('/src/browsers/puppeteer');
+const Puppeteer = require('./browsers/puppeteer');
 
 class Wappalyzer {
   constructor(pageUrl, options) {
