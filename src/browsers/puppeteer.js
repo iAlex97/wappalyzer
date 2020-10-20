@@ -320,9 +320,9 @@ class PuppeteerBrowser extends Browser {
           await scripts.dispose();
 
           this.js = await page.evaluate(getJsRecursive);
-          if (!this.js) {
-            this.js = await page.evaluate(getJs);
-          }
+          // if (!this.js) {
+          //   this.js = await page.evaluate(getJs);
+          // }
 
           this.cookies = (await page.cookies()).map(({
             name, value, domain, path,
