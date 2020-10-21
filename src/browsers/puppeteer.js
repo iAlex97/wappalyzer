@@ -247,10 +247,13 @@ class PuppeteerBrowser extends Browser {
               page.goto(url, { waitUntil: pageEvents, timeout: this.options.maxWait - 100 }),
               RejectAfter(this.options.maxWait, 'timeout'),
             ]);
+            // wait a little in case page uses js to redirect
+            await ResolveAfter(3000);
             if (responseRedirected) {
               // if page redirected and url didn't change it means
               // we need to wait for navigation to end
               if (page.url() === url) {
+                this.log('Waiting for redirect to settle');
                 await Promise.race([
                   page.waitForNavigation({
                     waitUntil: pageEvents,
@@ -261,7 +264,7 @@ class PuppeteerBrowser extends Browser {
               }
 
               if (checkSameDomain(url, page.url())) {
-                this.log(`Redirected from ${url} to ${page.url()}`, 'info');
+                this.log(`Redirected from ${url} to ${page.url()}`);
               } else {
                 throw new InvalidRedirectError(url, page.url());
               }
