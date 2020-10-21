@@ -511,7 +511,7 @@ class Wappalyzer {
             metas = metas.filter(m => !m.includes(indicator.value));
             break;
           default:
-            this.log(`Cannot remove technology type ${indicator.type} as it's not handled`, 'core', 'warn');
+            this.log(`Cannot remove technology type ${indicator.type} as it's not handled`, 'core', 'silly');
             break;
         }
       });
