@@ -174,7 +174,7 @@ class PuppeteerBrowser extends Browser {
                   && request.frame() === page.mainFrame()
                   && request.url() !== url
                 ) {
-                  this.log(`abort navigation to ${request.url()}`);
+                  this.log(`abort navigation to ${request.url()}`, 'warn');
 
                   request.abort('aborted');
                 } else if (!done) {
@@ -252,7 +252,7 @@ class PuppeteerBrowser extends Browser {
             if (responseRedirected || page.url() !== url) {
               // if page redirected and url didn't change it means
               // we need to wait for navigation to end
-              this.log('Waiting for redirect to settle');
+              this.log('Waiting for redirect to settle', 'warn');
               await Promise.race([
                 page.waitForNavigation({
                   waitUntil: pageEvents,
@@ -262,14 +262,14 @@ class PuppeteerBrowser extends Browser {
               ]);
 
               if (checkSameDomain(url, page.url())) {
-                this.log(`Redirected from ${url} to ${page.url()}`);
+                this.log(`Redirected from ${url} to ${page.url()}`, 'debug');
               } else {
                 throw new InvalidRedirectError(url, page.url());
               }
             }
           } catch (error) {
             if (error instanceof TimeoutError) {
-              this.log('Attempt to ignore timeout error');
+              this.log('Attempt to ignore timeout error', 'debug');
             } else if (error instanceof InvalidRedirectError) {
               throw error;
             } else {
@@ -308,7 +308,7 @@ class PuppeteerBrowser extends Browser {
             getLinksFromForms(page), ResolveAfter(3000, []),
           ]);
           if (formLinks && formLinks.length > 0) {
-            this.log(`Found ${formLinks.length} form links`, 'driver', 'error');
+            this.log(`Found ${formLinks.length} form links`, 'info');
             this.links = this.links.concat(formLinks);
           }
 
@@ -345,7 +345,7 @@ class PuppeteerBrowser extends Browser {
               ]);
               await this.extractPageTextFromHtml(this.html);
             } catch (e) {
-              this.log(`Failed extracting json-ld: ${e.message}`, 'driver', 'error');
+              this.log(`Failed extracting json-ld: ${e.message}`, 'error');
             }
           }
 
@@ -359,7 +359,6 @@ class PuppeteerBrowser extends Browser {
         }
       });
     } catch (error) {
-      this.log(`visit error: ${error.message || error} (${url})`, 'error');
       if (error instanceof InvalidRedirectError) {
         throw error;
       } else {
@@ -433,7 +432,7 @@ class PuppeteerBrowser extends Browser {
         Object.assign(this.pageTexts, { secondary_title: descSecondaryString });
       }
     } catch (e) {
-      this.log(`Failed secondary page text: ${e.message}`, 'driver', 'error');
+      this.log(`Failed secondary page text: ${e.message}`, 'error');
     }
   }
 
@@ -455,7 +454,7 @@ class PuppeteerBrowser extends Browser {
 
       Object.assign(this.pageTexts, { page_text: textBuffer.toString() });
     } catch (e) {
-      this.log(`Failed page text: ${e.message}`, 'driver', 'error');
+      this.log(`Failed page text: ${e.message}`, 'error');
     }
   }
 }
