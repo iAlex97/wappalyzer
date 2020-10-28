@@ -356,7 +356,7 @@ class Driver {
     try {
       [[language]] = languageDetect.detect(html.replace(/<\/?[^>]+(>|$)/g, ' '), 1);
     } catch (error) {
-      this.wappalyzer.log(`${error.message || error}; url: ${pageUrl.href}`, 'driver', 'error');
+      this.wappalyzer.log(`${error.message || error}; url: ${pageUrl.href}`, 'driver', 'warn');
     }
 
     const previousUrls = Object.keys(this.analyzedPageUrls);
